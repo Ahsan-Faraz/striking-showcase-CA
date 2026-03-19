@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Striking Showcase — Brand Book</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400&family=Nunito+Sans:wght@400;500;600&family=Exo+2:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#1A1524;
+  --bg2:#211B2E;
+  --maroon:#660033;
+  --maroon-dark:#4A0025;
+  --gold:#C9A84C;
+  --gold-light:#E8D48B;
+  --surface:rgba(255,255,255,0.06);
+  --border:rgba(255,255,255,0.10);
+  --border-hover:rgba(255,255,255,0.18);
+  --text-primary:rgba(255,255,255,0.88);
+  --text-secondary:rgba(255,255,255,0.55);
+  --text-tertiary:rgba(255,255,255,0.35);
+  --success:#2ecc71;
+  --error:#e74c3c;
+  --font-head:'Exo 2',sans-serif;
+  --font-body:'Nunito Sans',sans-serif;
+  --font-mono:'DM Mono',monospace;
+  --section-pad:clamp(80px,12vh,160px);
+  --spring:cubic-bezier(0.16,1,0.3,1);
+}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text-primary);overflow-x:hidden;-webkit-font-smoothing:antialiased;line-height:1.6}
+a{text-decoration:none;color:inherit}
+img{display:block;max-width:100%}
+
+/* ── NAV ── */
+.brand-nav{position:fixed;top:0;left:0;right:0;height:64px;z-index:100;display:flex;align-items:center;padding:0 32px;background:rgba(26,21,36,.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid rgba(255,255,255,.06)}
+.brand-nav-logo{height:28px;width:auto}
+.brand-nav-title{font-family:var(--font-head);font-size:13px;font-weight:700;letter-spacing:.05em;color:var(--gold);margin-left:16px;text-transform:uppercase}
+.brand-nav-links{display:flex;gap:24px;margin-left:auto}
+.brand-nav-links a{font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-secondary);transition:color .2s;padding:4px 0;position:relative}
+.brand-nav-links a::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--gold);transition:width .2s}
+.brand-nav-links a:hover{color:#fff}
+.brand-nav-links a:hover::after{width:100%}
+
+/* ── LAYOUT ── */
+.container{max-width:1200px;margin:0 auto;padding:0 32px}
+.brand-section{padding:var(--section-pad) 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.brand-section:last-child{border-bottom:none}
+
+/* ── SECTION HEADERS ── */
+.section-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.3em;color:var(--maroon);margin-bottom:16px;text-transform:uppercase}
+.section-title{font-family:var(--font-head);font-weight:800;font-size:clamp(28px,4vw,42px);color:#fff;letter-spacing:-.02em;margin-bottom:16px;text-transform:uppercase}
+.section-desc{font-size:15px;color:var(--text-secondary);line-height:1.7;max-width:640px;margin-bottom:48px}
+
+/* Star divider */
+.star-divider{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:24px}
+.star-divider::before,.star-divider::after{content:'';flex:1;max-width:100px;height:1px;background:linear-gradient(90deg,transparent,var(--maroon),transparent)}
+.star-divider svg{width:16px;height:16px;fill:var(--maroon);opacity:.5;flex-shrink:0}
+
+/* ── HERO ── */
+.brand-hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden;padding:120px 24px 80px}
+.brand-hero-backdrop{position:absolute;inset:0;z-index:0;background:
+  radial-gradient(ellipse 80% 60% at 50% 40%,rgba(102,0,51,.25) 0%,transparent 70%),
+  radial-gradient(ellipse 50% 50% at 20% 80%,rgba(102,0,51,.12) 0%,transparent 60%),
+  radial-gradient(ellipse 40% 40% at 85% 20%,rgba(201,168,76,.06) 0%,transparent 50%),
+  var(--bg)}
+.brand-hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:200px;background:linear-gradient(to bottom,transparent,var(--bg));z-index:2;pointer-events:none}
+.brand-hero-content{position:relative;z-index:3}
+.brand-hero-logo{width:clamp(180px,25vw,320px);margin:0 auto 32px}
+.brand-hero h1{font-family:var(--font-head);font-weight:900;font-size:clamp(36px,6vw,72px);letter-spacing:-.01em;line-height:1.05;text-transform:uppercase;margin-bottom:16px}
+.brand-hero h1 .gradient-text{background:linear-gradient(135deg,var(--maroon),var(--gold),var(--maroon));background-size:200% 200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:grad-shift 6s ease-in-out infinite}
+@keyframes grad-shift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.brand-hero p{font-size:18px;color:var(--text-secondary);max-width:560px;margin:0 auto 40px;line-height:1.7}
+.brand-hero-badge{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;letter-spacing:.15em;color:var(--gold);border:1px solid rgba(201,168,76,.3);padding:10px 24px;border-radius:100px;backdrop-filter:blur(8px);background:rgba(255,255,255,.03);text-transform:uppercase}
+
+/* ── TOC ── */
+.toc{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:48px}
+.toc-item{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:16px;padding:24px;transition:transform .25s var(--spring),border-color .25s,box-shadow .25s;cursor:pointer;display:block}
+.toc-item:hover{transform:translateY(-4px);border-color:var(--border-hover);box-shadow:0 16px 48px rgba(0,0,0,.4)}
+.toc-num{font-family:var(--font-head);font-weight:900;font-size:32px;background:linear-gradient(135deg,var(--maroon),rgba(255,255,255,.08));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;display:block}
+.toc-label{font-family:var(--font-head);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.03em;color:#fff;margin-bottom:4px}
+.toc-desc{font-size:12px;color:var(--text-tertiary);line-height:1.5}
+
+/* ── LOGO SECTION ── */
+.logo-showcase{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-bottom:48px}
+.logo-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:48px;display:flex;align-items:center;justify-content:center;position:relative;min-height:200px}
+.logo-box img{max-width:240px;height:auto}
+.logo-box-label{position:absolute;bottom:16px;left:16px;font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-tertiary)}
+.logo-box.light-bg{background:#f5f3f0}
+.logo-clearspace{position:relative;display:inline-block;margin:0 auto 48px;display:flex;justify-content:center}
+.logo-clearspace-inner{position:relative;padding:48px;border:1px dashed rgba(201,168,76,.3)}
+.logo-clearspace-inner img{width:200px;height:auto}
+.clearspace-mark{position:absolute;font-family:var(--font-mono);font-size:10px;color:var(--gold);letter-spacing:.1em}
+.clearspace-mark.top{top:8px;left:50%;transform:translateX(-50%)}
+.clearspace-mark.bottom{bottom:8px;left:50%;transform:translateX(-50%)}
+.clearspace-mark.left{left:8px;top:50%;transform:translateY(-50%) rotate(-90deg)}
+.clearspace-mark.right{right:8px;top:50%;transform:translateY(-50%) rotate(90deg)}
+.clearspace-line{position:absolute;background:rgba(201,168,76,.2)}
+.clearspace-line.h{height:1px;left:0;right:0}
+.clearspace-line.v{width:1px;top:0;bottom:0}
+.clearspace-line.h.top{top:40px}
+.clearspace-line.h.bottom{bottom:40px}
+.clearspace-line.v.left{left:40px}
+.clearspace-line.v.right{right:40px}
+
+.donts-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.dont-item{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;position:relative}
+.dont-item::before{content:'';position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;background:rgba(231,76,60,.15);display:flex;align-items:center;justify-content:center}
+.dont-item::after{content:'\2717';position:absolute;top:14px;right:17px;color:var(--error);font-size:14px;font-weight:700}
+.dont-item img{max-width:120px;height:auto;margin:0 auto 12px}
+.dont-item p{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary)}
+.dont-item.stretched img{transform:scaleX(1.5)}
+.dont-item.squished img{transform:scaleY(1.5)}
+.dont-item.tinted img{filter:hue-rotate(120deg) saturate(2)}
+.dont-item.blurred img{filter:blur(2px) drop-shadow(0 0 12px cyan)}
+
+.min-size-row{display:flex;align-items:flex-end;gap:48px;margin-top:32px;flex-wrap:wrap}
+.min-size-item{text-align:center}
+.min-size-item img{height:auto;margin:0 auto 8px}
+.min-size-item p{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* ── COLOR PALETTE ── */
+.color-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:20px;margin-bottom:48px}
+.color-card{border-radius:16px;overflow:hidden;background:var(--bg2);border:1px solid var(--border)}
+.color-swatch{height:120px;position:relative}
+.color-swatch-label{position:absolute;bottom:12px;left:16px;font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:100px;background:rgba(0,0,0,.4);backdrop-filter:blur(8px)}
+.color-info{padding:16px}
+.color-name{font-family:var(--font-head);font-weight:700;font-size:14px;margin-bottom:4px;text-transform:uppercase}
+.color-role{font-size:12px;color:var(--text-secondary);margin-bottom:8px;line-height:1.5}
+.color-value{font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);line-height:1.8}
+
+.gradient-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px}
+.gradient-card{border-radius:16px;overflow:hidden;border:1px solid var(--border)}
+.gradient-swatch{height:80px}
+.gradient-info{background:var(--bg2);padding:16px}
+.gradient-name{font-family:var(--font-head);font-weight:700;font-size:13px;margin-bottom:4px}
+.gradient-usage{font-size:12px;color:var(--text-secondary);margin-bottom:6px}
+.gradient-code{font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);word-break:break-all}
+
+/* ── TYPOGRAPHY ── */
+.type-family{margin-bottom:56px}
+.type-family-header{display:flex;align-items:baseline;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.type-family-name{font-family:var(--font-head);font-weight:800;font-size:24px;text-transform:uppercase}
+.type-family-source{font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;color:var(--gold);text-transform:uppercase;padding:4px 12px;border:1px solid rgba(201,168,76,.3);border-radius:100px}
+.type-specimen{margin-bottom:24px;padding:24px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.type-specimen-label{font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;color:var(--text-tertiary);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.type-specimen-label span{font-family:var(--font-body);font-size:11px;letter-spacing:0;text-transform:none;color:var(--text-secondary);background:rgba(255,255,255,.05);padding:2px 8px;border-radius:4px}
+
+.type-scale{margin-top:48px}
+.type-scale-row{display:flex;align-items:baseline;gap:24px;padding:20px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.type-scale-meta{min-width:160px;flex-shrink:0}
+.type-scale-name{font-family:var(--font-head);font-weight:700;font-size:12px;text-transform:uppercase;color:#fff;margin-bottom:2px}
+.type-scale-spec{font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);letter-spacing:.05em}
+.type-scale-sample{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── SPACING ── */
+.grid-demo{display:flex;gap:2px;margin-bottom:32px;flex-wrap:wrap}
+.grid-unit{width:48px;height:48px;border:1px solid rgba(201,168,76,.15);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;color:var(--text-tertiary);background:rgba(201,168,76,.03)}
+
+.spacing-tokens{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:48px}
+.spacing-token{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
+.spacing-token-name{font-family:var(--font-head);font-weight:700;font-size:13px;margin-bottom:8px;text-transform:uppercase}
+.spacing-token-value{font-family:var(--font-mono);font-size:24px;color:var(--gold);margin-bottom:4px}
+.spacing-token-use{font-size:11px;color:var(--text-tertiary);line-height:1.5}
+
+.radius-row{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-end}
+.radius-item{text-align:center}
+.radius-box{width:80px;height:80px;background:rgba(255,255,255,.06);border:1px solid var(--border);margin:0 auto 8px}
+.radius-label{font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);letter-spacing:.05em}
+.radius-value{font-family:var(--font-mono);font-size:11px;color:var(--gold);margin-top:2px}
+
+/* ── COMPONENTS ── */
+.component-showcase{margin-bottom:56px}
+.component-title{font-family:var(--font-head);font-weight:700;font-size:18px;text-transform:uppercase;margin-bottom:8px}
+.component-desc{font-size:13px;color:var(--text-secondary);margin-bottom:20px;line-height:1.6}
+.component-demo{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:40px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.component-demo.vertical{flex-direction:column;align-items:flex-start}
+
+/* Buttons */
+.btn-gold-demo{font-family:var(--font-head);font-size:14px;font-weight:700;padding:18px 40px;border-radius:8px;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:#0A0808;box-shadow:0 4px 24px rgba(201,168,76,.3);transition:transform .15s,box-shadow .25s;letter-spacing:.03em;border:none;cursor:pointer;text-transform:uppercase}
+.btn-gold-demo:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(201,168,76,.4)}
+.btn-ghost-demo{font-family:var(--font-head);font-size:14px;font-weight:700;padding:18px 40px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:#fff;transition:background .2s,transform .15s,border-color .2s;letter-spacing:.03em;cursor:pointer;backdrop-filter:blur(8px);text-transform:uppercase}
+.btn-ghost-demo:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
+
+/* Cards */
+.card-demo{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:32px;max-width:320px;transition:transform .25s var(--spring),border-color .25s,box-shadow .25s;position:relative;overflow:hidden}
+.card-demo::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--maroon),transparent);opacity:.3}
+.card-demo:hover{transform:translateY(-4px);border-color:var(--border-hover);box-shadow:0 16px 48px rgba(0,0,0,.4)}
+.card-demo h4{font-family:var(--font-head);font-weight:700;font-size:18px;text-transform:uppercase;margin-bottom:8px}
+.card-demo p{font-size:14px;color:var(--text-secondary);line-height:1.7}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;padding:6px 16px;border-radius:100px;border:1px solid}
+.badge-usbc{color:var(--gold);border-color:rgba(201,168,76,.3);background:rgba(201,168,76,.08)}
+.badge-jr-gold{color:#E8D48B;border-color:rgba(232,212,139,.3);background:rgba(232,212,139,.08)}
+.badge-d1{color:#fff;border-color:rgba(102,0,51,.5);background:rgba(102,0,51,.25)}
+.badge-d2{color:var(--text-secondary);border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.04)}
+
+/* Stat block */
+.stat-block{text-align:center;padding:24px}
+.stat-number{font-family:var(--font-head);font-weight:700;font-size:64px;line-height:1;color:var(--gold);letter-spacing:-.03em}
+.stat-label{font-family:var(--font-mono);font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--text-secondary);margin-top:8px}
+
+/* Section header component */
+.section-header-demo{text-align:center;max-width:500px}
+
+/* ── BRAND VOICE ── */
+.voice-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.voice-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px}
+.voice-do{border-color:rgba(46,204,113,.2)}
+.voice-dont{border-color:rgba(231,76,60,.2)}
+.voice-card h4{font-family:var(--font-head);font-weight:700;font-size:14px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.voice-card h4 .check{color:var(--success)}
+.voice-card h4 .cross{color:var(--error)}
+.voice-card p{font-size:14px;color:var(--text-secondary);line-height:1.7;font-style:italic}
+
+.voice-principles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:48px}
+.voice-principle{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center}
+.voice-principle h4{font-family:var(--font-head);font-weight:700;font-size:14px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.voice-principle p{font-size:13px;color:var(--text-secondary);line-height:1.6}
+
+/* ── ICONOGRAPHY ── */
+.icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:20px}
+.icon-item{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;text-align:center}
+.icon-item svg{width:48px;height:48px;margin:0 auto 12px}
+.icon-item p{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary)}
+
+/* ── PHOTOGRAPHY ── */
+.photo-showcase{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center}
+.photo-frame{border-radius:16px;overflow:hidden;border:1px solid var(--border);position:relative}
+.photo-frame img{width:100%;height:auto;display:block}
+.photo-frame::after{content:'';position:absolute;inset:0;border-radius:16px;box-shadow:inset 0 0 60px rgba(102,0,51,.2)}
+.photo-guidelines{list-style:none}
+.photo-guidelines li{font-size:14px;color:var(--text-secondary);line-height:1.8;padding-left:20px;position:relative;margin-bottom:8px}
+.photo-guidelines li::before{content:'';position:absolute;left:0;top:10px;width:6px;height:6px;border-radius:50%;background:var(--gold)}
+
+/* ── TAGLINE ── */
+.tagline-section{text-align:center;padding:80px 24px;background:linear-gradient(135deg,var(--maroon),var(--maroon-dark));border-radius:24px;margin-top:48px;position:relative;overflow:hidden}
+.tagline-section::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:128px;opacity:.04}
+.tagline{font-family:var(--font-head);font-weight:900;font-size:clamp(32px,5vw,56px);letter-spacing:-.01em;text-transform:uppercase;position:relative;z-index:1}
+.tagline .gold{color:var(--gold)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .logo-showcase{grid-template-columns:1fr}
+  .donts-grid{grid-template-columns:1fr 1fr}
+  .color-grid{grid-template-columns:1fr 1fr}
+  .gradient-row{grid-template-columns:1fr}
+  .voice-grid{grid-template-columns:1fr}
+  .photo-showcase{grid-template-columns:1fr}
+  .brand-nav-links{display:none}
+  .type-scale-row{flex-direction:column;gap:8px}
+  .type-scale-meta{min-width:auto}
+}
+@media(max-width:480px){
+  .donts-grid{grid-template-columns:1fr}
+  .color-grid{grid-template-columns:1fr}
+  .toc{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ NAV ═══════════════════════════════════ -->
+<nav class="brand-nav">
+  <img src="logo-white.png" alt="Striking Showcase" class="brand-nav-logo">
+  <span class="brand-nav-title">Brand Book</span>
+  <div class="brand-nav-links">
+    <a href="#logo">Logo</a>
+    <a href="#colors">Colors</a>
+    <a href="#typography">Type</a>
+    <a href="#spacing">Spacing</a>
+    <a href="#components">Components</a>
+    <a href="#voice">Voice</a>
+    <a href="#icons">Icons</a>
+    <a href="#photography">Photo</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════ HERO ═══════════════════════════════════ -->
+<section class="brand-hero">
+  <div class="brand-hero-backdrop"></div>
+  <div class="brand-hero-content">
+    <img src="logo-white.png" alt="Striking Showcase" class="brand-hero-logo">
+    <h1><span class="gradient-text">Brand Book</span></h1>
+    <p>The definitive guide to the Striking Showcase visual identity. Every color, typeface, and component defined in one place.</p>
+    <div class="brand-hero-badge">
+      <svg viewBox="0 0 24 24" width="12" height="12"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="currentColor"/></svg>
+      Version 1.0 — March 2026
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc" style="text-align:left;margin-top:64px">
+      <a href="#logo" class="toc-item">
+        <span class="toc-num">01</span>
+        <div class="toc-label">Logo</div>
+        <div class="toc-desc">Usage rules, clear space, minimum size</div>
+      </a>
+      <a href="#colors" class="toc-item">
+        <span class="toc-num">02</span>
+        <div class="toc-label">Color Palette</div>
+        <div class="toc-desc">Primary, supporting, and gradient definitions</div>
+      </a>
+      <a href="#typography" class="toc-item">
+        <span class="toc-num">03</span>
+        <div class="toc-label">Typography</div>
+        <div class="toc-desc">Fonts, weights, and type scale</div>
+      </a>
+      <a href="#spacing" class="toc-item">
+        <span class="toc-num">04</span>
+        <div class="toc-label">Spacing & Layout</div>
+        <div class="toc-desc">Grid system, containers, border radii</div>
+      </a>
+      <a href="#components" class="toc-item">
+        <span class="toc-num">05</span>
+        <div class="toc-label">Components</div>
+        <div class="toc-desc">Buttons, cards, badges, stat blocks</div>
+      </a>
+      <a href="#voice" class="toc-item">
+        <span class="toc-num">06</span>
+        <div class="toc-label">Brand Voice</div>
+        <div class="toc-desc">Tone, language, and tagline</div>
+      </a>
+      <a href="#icons" class="toc-item">
+        <span class="toc-num">07</span>
+        <div class="toc-label">Iconography</div>
+        <div class="toc-desc">Star motif and bowling pin silhouettes</div>
+      </a>
+      <a href="#photography" class="toc-item">
+        <span class="toc-num">08</span>
+        <div class="toc-label">Photography</div>
+        <div class="toc-desc">Style, tone, and usage guidelines</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 01 — LOGO ═══════════════════════════════════ -->
+<section id="logo" class="brand-section">
+  <div class="container">
+    <div class="star-divider">
+      <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+    </div>
+    <div class="section-label">01 &mdash; Identity</div>
+    <h2 class="section-title">Logo</h2>
+    <p class="section-desc">The Striking Showcase logo is the cornerstone of the brand. It must always be reproduced clearly and consistently.</p>
+
+    <!-- Logo Versions -->
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:16px;color:var(--gold)">Logo Versions</h3>
+    <div class="logo-showcase">
+      <div class="logo-box">
+        <img src="logo-white.png" alt="Logo — White on Dark">
+        <span class="logo-box-label">White — Dark Backgrounds</span>
+      </div>
+      <div class="logo-box light-bg">
+        <img src="logo-maroon.png" alt="Logo — Maroon on Light">
+        <span class="logo-box-label" style="color:rgba(0,0,0,.4)">Maroon — Light Backgrounds</span>
+      </div>
+    </div>
+
+    <!-- Clear Space -->
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:8px;margin-top:48px;color:var(--gold)">Clear Space</h3>
+    <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;line-height:1.7">Maintain a minimum clear space around the logo equal to the height of the star mark in the logo. No other graphic elements, text, or edge boundaries should intrude into this space.</p>
+    <div class="logo-clearspace">
+      <div class="logo-clearspace-inner">
+        <div class="clearspace-line h top"></div>
+        <div class="clearspace-line h bottom"></div>
+        <div class="clearspace-line v left"></div>
+        <div class="clearspace-line v right"></div>
+        <span class="clearspace-mark top">X</span>
+        <span class="clearspace-mark bottom">X</span>
+        <span class="clearspace-mark left">X</span>
+        <span class="clearspace-mark right">X</span>
+        <img src="logo-white.png" alt="Logo clear space">
+      </div>
+    </div>
+
+    <!-- Minimum Size -->
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:8px;margin-top:48px;color:var(--gold)">Minimum Size</h3>
+    <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;line-height:1.7">To ensure legibility, never reproduce the logo smaller than these minimum dimensions.</p>
+    <div class="min-size-row">
+      <div class="min-size-item">
+        <img src="logo-white.png" alt="Minimum print" style="width:120px">
+        <p>Print: 1.5 in / 38mm</p>
+      </div>
+      <div class="min-size-item">
+        <img src="logo-white.png" alt="Minimum digital" style="width:80px">
+        <p>Digital: 120px wide</p>
+      </div>
+      <div class="min-size-item">
+        <img src="logo-white.png" alt="Minimum favicon" style="width:40px">
+        <p>Favicon: 32px (mark only)</p>
+      </div>
+    </div>
+
+    <!-- Do's and Don'ts -->
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:16px;margin-top:48px;color:var(--gold)">Logo Misuse</h3>
+    <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;line-height:1.7">Never alter the logo in any way. The following examples show common misuses to avoid.</p>
+    <div class="donts-grid">
+      <div class="dont-item stretched">
+        <img src="logo-white.png" alt="Stretched">
+        <p>Don't stretch</p>
+      </div>
+      <div class="dont-item squished">
+        <img src="logo-white.png" alt="Squished">
+        <p>Don't squish</p>
+      </div>
+      <div class="dont-item tinted">
+        <img src="logo-white.png" alt="Recolored">
+        <p>Don't recolor</p>
+      </div>
+      <div class="dont-item blurred">
+        <img src="logo-white.png" alt="Effects">
+        <p>Don't add effects</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 02 — COLORS ═══════════════════════════════════ -->
+<section id="colors" class="brand-section">
+  <div class="container">
+    <div class="star-divider">
+      <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+    </div>
+    <div class="section-label">02 &mdash; Color</div>
+    <h2 class="section-title">Color Palette</h2>
+    <p class="section-desc">Color is central to the Striking Showcase identity. The palette combines rich, confident darks with warm metallic accents.</p>
+
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:16px;color:var(--gold)">Primary Colors</h3>
+    <div class="color-grid">
+      <!-- Maroon -->
+      <div class="color-card">
+        <div class="color-swatch" style="background:#660033">
+          <span class="color-swatch-label" style="color:#fff">#660033</span>
+        </div>
+        <div class="color-info">
+          <div class="color-name">Maroon</div>
+          <div class="color-role">Brand Primary — emphasis, accents, section backgrounds</div>
+          <div class="color-value">HEX #660033<br>RGB 102, 0, 51<br>HSL 330, 100%, 20%</div>
+        </div>
+      </div>
+      <!-- Gold -->
+      <div class="color-card">
+        <div class="color-swatch" style="background:#C9A84C">
+          <span class="color-swatch-label" style="color:#0A0808">#C9A84C</span>
+        </div>
+        <div class="color-info">
+          <div class="color-name">Gold</div>
+          <div class="color-role">Brand Accent — CTAs, highlights, stat numbers, active states</div>
+          <div class="color-value">HEX #C9A84C<br>RGB 201, 168, 76<br>HSL 44, 54%, 54%</div>
+        </div>
+      </div>
+      <!-- Gold Light -->
+      <div class="color-card">
+        <div class="color-swatch" style="background:#E8D48B">
+          <span class="color-swatch-label" style="color:#0A0808">#E8D48B</span>
+        </div>
+        <div class="color-info">
+          <div class="color-name">Gold Light</div>
+          <div class="color-role">Gold gradients, hover states</div>
+          <div class="color-value">HEX #E8D48B<br>RGB 232, 212, 139<br>HSL 47, 67%, 73%</div>
+        </div>
+      </div>
+      <!-- Dark Plum -->
+      <div class="color-card">
+        <div class="color-swatch" style="background:#1A1524">
+          <span class="color-swatch-label" style="color:rgba(255,255,255,.6)">#1A1524</span>
+        </div>
+        <div class="color-info">
+          <div class="color-name">Dark Plum</div>
+          <div class="color-role">Primary dark background</div>
+          <div class="color-value">HEX #1A1524<br>RGB 26, 21, 36<br>HSL 260, 26%, 11%</div>
+        </div>
+      </div>
+      <!-- Dark Plum 2 -->
+      <div class="color-card">
+        <div class="color-swatch" style="background:#211B2E">
+          <span class="color-swatch-label" style="color:rgba(255,255,255,.6)">#211B2E</span>
+        </div>
+        <div class="color-info">
+          <div class="color-name">Dark Plum 2</div>
+          <div class="color-role">Secondary surfaces, cards, footer</div>
+          <div class="color-value">HEX #211B2E<br>RGB 33, 27, 46<br>HSL 259, 26%, 14%</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:16px;margin-top:48px;color:var(--gold)">Supporting Colors</h3>
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch" style="background:rgba(255,255,255,0.88);display:flex;align-items:center;justify-content:center">
+          <span style="font-family:var(--font-mono);font-size:11px;color:#1A1524">Aa</span>
+        </div>
+        <div class="color-info">
+          <div class="color-name">Text Primary</div>
+          <div class="color-role">Main body text on dark backgrounds</div>
+          <div class="color-value">rgba(255, 255, 255, 0.88)</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:rgba(255,255,255,0.55);display:flex;align-items:center;justify-content:center">
+          <span style="font-family:var(--font-mono);font-size:11px;color:#1A1524">Aa</span>
+        </div>
+        <div class="color-info">
+          <div class="color-name">Text Secondary</div>
+          <div class="color-role">Descriptions, supporting text</div>
+          <div class="color-value">rgba(255, 255, 255, 0.55)</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center">
+          <span style="font-family:var(--font-mono);font-size:11px;color:#1A1524">Aa</span>
+        </div>
+        <div class="color-info">
+          <div class="color-name">Text Tertiary</div>
+          <div class="color-role">Captions, timestamps, placeholders</div>
+          <div class="color-value">rgba(255, 255, 255, 0.35)</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#2ecc71">
+          <span class="color-swatch-label" style="color:#fff">#2ecc71</span>
+        </div>
+        <div class="color-info">
+          <div class="color-name">Success Green</div>
+          <div class="color-role">Success states, verified badges, confirmations</div>
+          <div class="color-value">HEX #2ecc71<br>RGB 46, 204, 113</div>
+        </div>
+      </div>
+      <div class="color-card">
+        <div class="color-swatch" style="background:#e74c3c">
+          <span class="color-swatch-label" style="color:#fff">#e74c3c</span>
+        </div>
+        <div class="color-info">
+          <div class="color-name">Error Red</div>
+          <div class="color-role">Error states, destructive actions, alerts</div>
+          <div class="color-value">HEX #e74c3c<br>RGB 231, 76, 60</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:16px;margin-top:48px;color:var(--gold)">Gradients</h3>
+    <div class="gradient-row">
+      <div class="gradient-card">
+        <div class="gradient-swatch" style="background:linear-gradient(135deg,#660033,#C9A84C)"></div>
+        <div class="gradient-info">
+          <div class="gradient-name">Maroon to Gold</div>
+          <div class="gradient-usage">Headline text, accent borders</div>
+          <div class="gradient-code">linear-gradient(135deg, #660033, #C9A84C)</div>
+        </div>
+      </div>
+      <div class="gradient-card">
+        <div class="gradient-swatch" style="background:linear-gradient(135deg,#C9A84C,#E8D48B)"></div>
+        <div class="gradient-info">
+          <div class="gradient-name">Gold CTA</div>
+          <div class="gradient-usage">Primary buttons, call-to-action elements</div>
+          <div class="gradient-code">linear-gradient(135deg, #C9A84C, #E8D48B)</div>
+        </div>
+      </div>
+      <div class="gradient-card">
+        <div class="gradient-swatch" style="background:linear-gradient(135deg,#660033,#4A0025)"></div>
+        <div class="gradient-info">
+          <div class="gradient-name">Maroon Band</div>
+          <div class="gradient-usage">Stat section background, emphasis bands</div>
+          <div class="gradient-code">linear-gradient(135deg, #660033, #4A0025)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 03 — TYPOGRAPHY ═══════════════════════════════════ -->
+<section id="typography" class="brand-section">
+  <div class="container">
+    <div class="star-divider">
+      <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+    </div>
+    <div class="section-label">03 &mdash; Typography</div>
+    <h2 class="section-title">Typography</h2>
+    <p class="section-desc">Three typefaces work in harmony: Exo 2 commands attention, Nunito Sans handles readability, and DM Mono provides technical precision.</p>
+
+    <!-- Exo 2 -->
+    <div class="type-family">
+      <div class="type-family-header">
+        <span class="type-family-name" style="font-weight:900">Exo 2</span>
+        <span class="type-family-source">Google Fonts</span>
+      </div>
+      <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;line-height:1.7">The heading font. Geometric, bold, and built for impact. Always uppercase for headings. Letter-spacing ranges from -0.01em to 0.02em.</p>
+
+      <div class="type-specimen">
+        <div class="type-specimen-label">Weight 900 &mdash; Black <span>Hero headlines, primary page titles</span></div>
+        <div style="font-family:var(--font-head);font-weight:900;font-size:clamp(32px,5vw,56px);text-transform:uppercase;letter-spacing:-.01em;line-height:1.1">Show Off. Get Recruited.</div>
+      </div>
+      <div class="type-specimen">
+        <div class="type-specimen-label">Weight 800 &mdash; ExtraBold <span>Section titles, card headers</span></div>
+        <div style="font-family:var(--font-head);font-weight:800;font-size:clamp(24px,3.5vw,42px);text-transform:uppercase;letter-spacing:-.02em;line-height:1.1">Discover Your Next Superstar</div>
+      </div>
+      <div class="type-specimen">
+        <div class="type-specimen-label">Weight 700 &mdash; Bold <span>Subheadings, feature numbers, nav items</span></div>
+        <div style="font-family:var(--font-head);font-weight:700;font-size:24px;text-transform:uppercase;letter-spacing:.02em;line-height:1.2">Verified Stats. Real Athletes.</div>
+      </div>
+    </div>
+
+    <!-- Nunito Sans -->
+    <div class="type-family">
+      <div class="type-family-header">
+        <span class="type-family-name">Nunito Sans</span>
+        <span class="type-family-source">Google Fonts</span>
+      </div>
+      <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;line-height:1.7">The body font. Friendly, highly readable, and pairs naturally with Exo 2. Line-height 1.6 to 1.7 for body text.</p>
+
+      <div class="type-specimen">
+        <div class="type-specimen-label">Weight 400 &mdash; Regular <span>Body text, descriptions</span></div>
+        <div style="font-family:var(--font-body);font-weight:400;font-size:15px;line-height:1.7;color:var(--text-secondary);max-width:640px">Striking Showcase connects youth bowlers with college coaches through verified statistics, highlight videos, and direct messaging. Our platform is always 100% free for coaches.</div>
+      </div>
+      <div class="type-specimen">
+        <div class="type-specimen-label">Weight 500 &mdash; Medium <span>Labels, nav links, slightly emphasized text</span></div>
+        <div style="font-family:var(--font-body);font-weight:500;font-size:14px;line-height:1.7;color:var(--text-primary)">The recruiting platform built specifically for bowling. Trusted by coaches and athletes nationwide.</div>
+      </div>
+      <div class="type-specimen">
+        <div class="type-specimen-label">Weight 600 &mdash; SemiBold <span>Bold body text, button labels</span></div>
+        <div style="font-family:var(--font-body);font-weight:600;font-size:14px;line-height:1.7;color:var(--text-primary)">Create Your Free Account Today. Start Building Your Portfolio.</div>
+      </div>
+    </div>
+
+    <!-- DM Mono -->
+    <div class="type-family">
+      <div class="type-family-header">
+        <span class="type-family-name" style="font-family:var(--font-mono)">DM Mono</span>
+        <span class="type-family-source">Google Fonts</span>
+      </div>
+      <p style="font-size:14px;color:var(--text-secondary);margin-bottom:24px;line-height:1.7">The utility font. Used for labels, badges, section labels, and technical text. Always uppercase with wide letter-spacing (0.1em to 0.3em).</p>
+
+      <div class="type-specimen">
+        <div class="type-specimen-label">Weight 400 &mdash; Regular <span>Stat labels, badges, section labels</span></div>
+        <div style="font-family:var(--font-mono);font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:12px">USBC Verified Athlete</div>
+        <div style="font-family:var(--font-mono);font-weight:400;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:12px">For Coaches &mdash; Features</div>
+        <div style="font-family:var(--font-mono);font-weight:400;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-tertiary)">Average: 215 &bull; High Game: 289</div>
+      </div>
+    </div>
+
+    <!-- Type Scale -->
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:24px;color:var(--gold)">Type Scale</h3>
+    <div class="type-scale">
+      <div class="type-scale-row">
+        <div class="type-scale-meta">
+          <div class="type-scale-name">Hero</div>
+          <div class="type-scale-spec">84px / Exo 2 900</div>
+        </div>
+        <div class="type-scale-sample" style="font-family:var(--font-head);font-weight:900;font-size:clamp(36px,6vw,84px);text-transform:uppercase;letter-spacing:-.01em;line-height:1">Showcase</div>
+      </div>
+      <div class="type-scale-row">
+        <div class="type-scale-meta">
+          <div class="type-scale-name">Page Title</div>
+          <div class="type-scale-spec">48px / Exo 2 800</div>
+        </div>
+        <div class="type-scale-sample" style="font-family:var(--font-head);font-weight:800;font-size:clamp(28px,4vw,48px);text-transform:uppercase;letter-spacing:-.02em;line-height:1.1">Page Title</div>
+      </div>
+      <div class="type-scale-row">
+        <div class="type-scale-meta">
+          <div class="type-scale-name">Section Title</div>
+          <div class="type-scale-spec">42px / Exo 2 800</div>
+        </div>
+        <div class="type-scale-sample" style="font-family:var(--font-head);font-weight:800;font-size:clamp(24px,3.5vw,42px);text-transform:uppercase;letter-spacing:-.02em;line-height:1.1">Section Title</div>
+      </div>
+      <div class="type-scale-row">
+        <div class="type-scale-meta">
+          <div class="type-scale-name">Card Title</div>
+          <div class="type-scale-spec">18px / Exo 2 700</div>
+        </div>
+        <div class="type-scale-sample" style="font-family:var(--font-head);font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.02em">Card Title Here</div>
+      </div>
+      <div class="type-scale-row">
+        <div class="type-scale-meta">
+          <div class="type-scale-name">Body</div>
+          <div class="type-scale-spec">15px / Nunito Sans 400</div>
+        </div>
+        <div class="type-scale-sample" style="font-family:var(--font-body);font-weight:400;font-size:15px;line-height:1.7;color:var(--text-secondary)">Body text for descriptions, paragraphs, and general content throughout the platform.</div>
+      </div>
+      <div class="type-scale-row">
+        <div class="type-scale-meta">
+          <div class="type-scale-name">Small</div>
+          <div class="type-scale-spec">13px / Nunito Sans 400</div>
+        </div>
+        <div class="type-scale-sample" style="font-family:var(--font-body);font-weight:400;font-size:13px;color:var(--text-tertiary)">Smaller text for captions, timestamps, and metadata.</div>
+      </div>
+      <div class="type-scale-row">
+        <div class="type-scale-meta">
+          <div class="type-scale-name">Label</div>
+          <div class="type-scale-spec">11px / DM Mono 400</div>
+        </div>
+        <div class="type-scale-sample" style="font-family:var(--font-mono);font-weight:400;font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--text-tertiary)">Section Label Text</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 04 — SPACING ═══════════════════════════════════ -->
+<section id="spacing" class="brand-section">
+  <div class="container">
+    <div class="star-divider">
+      <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+    </div>
+    <div class="section-label">04 &mdash; Layout</div>
+    <h2 class="section-title">Spacing & Layout</h2>
+    <p class="section-desc">All spacing is built on an 8px grid. This ensures visual consistency and rhythm across every screen.</p>
+
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:16px;color:var(--gold)">8px Grid</h3>
+    <div class="grid-demo">
+      <div class="grid-unit">8</div>
+      <div class="grid-unit">16</div>
+      <div class="grid-unit">24</div>
+      <div class="grid-unit">32</div>
+      <div class="grid-unit">40</div>
+      <div class="grid-unit">48</div>
+      <div class="grid-unit">56</div>
+      <div class="grid-unit">64</div>
+      <div class="grid-unit">72</div>
+      <div class="grid-unit">80</div>
+    </div>
+
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:16px;margin-top:48px;color:var(--gold)">Key Tokens</h3>
+    <div class="spacing-tokens">
+      <div class="spacing-token">
+        <div class="spacing-token-name">Container</div>
+        <div class="spacing-token-value">1200px</div>
+        <div class="spacing-token-use">Max-width for content</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-token-name">Section Pad</div>
+        <div class="spacing-token-value" style="font-size:16px">clamp(80px, 12vh, 160px)</div>
+        <div class="spacing-token-use">Vertical section padding</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-token-name">Card Gap</div>
+        <div class="spacing-token-value">20px</div>
+        <div class="spacing-token-use">Grid gap between cards</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-token-name">Card Padding</div>
+        <div class="spacing-token-value">32px</div>
+        <div class="spacing-token-use">Internal card padding</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-token-name">Side Gutter</div>
+        <div class="spacing-token-value">24px</div>
+        <div class="spacing-token-use">Container horizontal padding</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-token-name">Nav Height</div>
+        <div class="spacing-token-value">64px</div>
+        <div class="spacing-token-use">Fixed navigation bar</div>
+      </div>
+    </div>
+
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:16px;margin-top:48px;color:var(--gold)">Border Radius</h3>
+    <div class="radius-row">
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:8px"></div>
+        <div class="radius-label">Button</div>
+        <div class="radius-value">8px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:12px"></div>
+        <div class="radius-label">Small Card</div>
+        <div class="radius-value">12px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:16px"></div>
+        <div class="radius-label">Card</div>
+        <div class="radius-value">16px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:100px;width:56px;height:56px"></div>
+        <div class="radius-label">Badge / Pill</div>
+        <div class="radius-value">100px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:50%;width:56px;height:56px"></div>
+        <div class="radius-label">Avatar</div>
+        <div class="radius-value">50%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 05 — COMPONENTS ═══════════════════════════════════ -->
+<section id="components" class="brand-section">
+  <div class="container">
+    <div class="star-divider">
+      <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+    </div>
+    <div class="section-label">05 &mdash; UI</div>
+    <h2 class="section-title">Components</h2>
+    <p class="section-desc">Core UI building blocks. All components use the brand's design tokens for color, typography, spacing, and radii.</p>
+
+    <!-- Buttons -->
+    <div class="component-showcase">
+      <div class="component-title">Buttons</div>
+      <div class="component-desc">Two button variants: the gold gradient primary CTA and the ghost secondary button. Both use Exo 2 Bold at 14px with uppercase text.</div>
+      <div class="component-demo">
+        <button class="btn-gold-demo">Get Started Free</button>
+        <button class="btn-ghost-demo">Watch Demo</button>
+      </div>
+      <div style="margin-top:16px;font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);letter-spacing:.1em;text-transform:uppercase;line-height:2">
+        Padding: 18px 40px &bull; Radius: 8px &bull; Min-height: 44px &bull; Font: Exo 2 700 14px &bull; Letter-spacing: 0.03em
+      </div>
+    </div>
+
+    <!-- Cards -->
+    <div class="component-showcase">
+      <div class="component-title">Card</div>
+      <div class="component-desc">Glass-morphism surface with subtle border and a maroon gradient accent line at the top. Hover lifts the card 4px with enhanced shadow.</div>
+      <div class="component-demo">
+        <div class="card-demo">
+          <h4>Athlete Portfolio</h4>
+          <p>Verified stats, highlight reels, and academic info — all in one place that coaches can browse anytime.</p>
+        </div>
+        <div class="card-demo">
+          <h4>Coach Portal</h4>
+          <p>Search, filter, and message athletes directly. Always 100% free for college coaching staff.</p>
+        </div>
+      </div>
+      <div style="margin-top:16px;font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);letter-spacing:.1em;text-transform:uppercase;line-height:2">
+        Background: rgba(255,255,255,0.04) &bull; Border: rgba(255,255,255,0.08) &bull; Radius: 16px &bull; Padding: 32px
+      </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="component-showcase">
+      <div class="component-title">Badges</div>
+      <div class="component-desc">Pill-shaped badges for status, verification, and categorization. Each variant uses a specific color from the palette.</div>
+      <div class="component-demo">
+        <span class="badge badge-usbc">
+          <svg viewBox="0 0 24 24" width="12" height="12" style="flex-shrink:0"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="currentColor"/></svg>
+          USBC Verified
+        </span>
+        <span class="badge badge-jr-gold">Junior Gold</span>
+        <span class="badge badge-d1">Division I</span>
+        <span class="badge badge-d2">Division II</span>
+      </div>
+      <div style="margin-top:16px;font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);letter-spacing:.1em;text-transform:uppercase;line-height:2">
+        Font: DM Mono 400 10px &bull; Letter-spacing: 0.15em &bull; Padding: 6px 16px &bull; Radius: 100px
+      </div>
+    </div>
+
+    <!-- Stat Block -->
+    <div class="component-showcase">
+      <div class="component-title">Stat Block</div>
+      <div class="component-desc">Large numbers paired with monospace labels. Used in the maroon stat band and throughout athlete portfolios.</div>
+      <div class="component-demo" style="background:linear-gradient(135deg,#660033,#4A0025);justify-content:space-around">
+        <div class="stat-block">
+          <div class="stat-number">2,400+</div>
+          <div class="stat-label">Athletes</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-number">215</div>
+          <div class="stat-label">Avg Score</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-number">94%</div>
+          <div class="stat-label">Recruit Rate</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);letter-spacing:.1em;text-transform:uppercase;line-height:2">
+        Number: Exo 2 700 64px, color Gold &bull; Label: DM Mono 400 11px, tracking 0.3em
+      </div>
+    </div>
+
+    <!-- Section Header -->
+    <div class="component-showcase">
+      <div class="component-title">Section Header</div>
+      <div class="component-desc">The standard pattern for introducing a new section: mono label, star divider, and heading. Centered or left-aligned.</div>
+      <div class="component-demo vertical" style="align-items:center;text-align:center;width:100%">
+        <div class="section-header-demo" style="width:100%">
+          <div class="star-divider">
+            <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" fill="var(--maroon)" opacity=".5"/></svg>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:.3em;color:var(--maroon);text-transform:uppercase;margin-bottom:16px">Section Label</div>
+          <div style="font-family:var(--font-head);font-weight:800;font-size:clamp(24px,3.5vw,42px);text-transform:uppercase;letter-spacing:-.02em">Section Title Here</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;font-family:var(--font-mono);font-size:10px;color:var(--text-tertiary);letter-spacing:.1em;text-transform:uppercase;line-height:2">
+        Label: DM Mono 11px, tracking 0.3em, maroon &bull; Divider: 1px gradient lines + star SVG &bull; Title: Exo 2 800
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 06 — BRAND VOICE ═══════════════════════════════════ -->
+<section id="voice" class="brand-section">
+  <div class="container">
+    <div class="star-divider">
+      <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+    </div>
+    <div class="section-label">06 &mdash; Language</div>
+    <h2 class="section-title">Brand Voice</h2>
+    <p class="section-desc">Striking Showcase speaks with authority and warmth. We know the sport, we respect the grind, and we cut straight to the point.</p>
+
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:16px;color:var(--gold)">Voice Principles</h3>
+    <div class="voice-principles">
+      <div class="voice-principle">
+        <h4>Confident</h4>
+        <p>We know our value. Bold statements, never hedging or apologizing.</p>
+      </div>
+      <div class="voice-principle">
+        <h4>Direct</h4>
+        <p>No fluff, no jargon walls. Say it clearly, say it once.</p>
+      </div>
+      <div class="voice-principle">
+        <h4>Authoritative</h4>
+        <p>Sports authority meets tech precision. Data-driven, credible.</p>
+      </div>
+      <div class="voice-principle">
+        <h4>Peer-Level</h4>
+        <p>We speak to college coaches as equals, not up to them or down.</p>
+      </div>
+    </div>
+
+    <h3 style="font-family:var(--font-head);font-weight:700;font-size:16px;text-transform:uppercase;margin-bottom:16px;margin-top:48px;color:var(--gold)">Do vs. Don't</h3>
+    <div class="voice-grid">
+      <div class="voice-card voice-do">
+        <h4><span class="check">&#10003;</span> Do</h4>
+        <p>"Verified stats. Highlight reels. Direct messaging. Everything you need to find your next recruit."</p>
+      </div>
+      <div class="voice-card voice-dont">
+        <h4><span class="cross">&#10007;</span> Don't</h4>
+        <p>"We humbly hope to perhaps provide some assistance in your recruiting journey, if that's okay with you."</p>
+      </div>
+      <div class="voice-card voice-do">
+        <h4><span class="check">&#10003;</span> Do</h4>
+        <p>"2,400+ athletes. 215 average. Zero cost for coaches."</p>
+      </div>
+      <div class="voice-card voice-dont">
+        <h4><span class="cross">&#10007;</span> Don't</h4>
+        <p>"We have a considerable number of talented young athletes who might be of interest to your program's needs."</p>
+      </div>
+    </div>
+
+    <!-- Tagline -->
+    <div class="tagline-section">
+      <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:.3em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:24px;position:relative;z-index:1">Brand Tagline</div>
+      <div class="tagline">"Show Off. <span class="gold">Get Recruited.</span>"</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 07 — ICONOGRAPHY ═══════════════════════════════════ -->
+<section id="icons" class="brand-section">
+  <div class="container">
+    <div class="star-divider">
+      <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+    </div>
+    <div class="section-label">07 &mdash; Motifs</div>
+    <h2 class="section-title">Iconography</h2>
+    <p class="section-desc">Two recurring visual motifs reinforce the brand throughout the product: the star and the bowling pin.</p>
+
+    <div class="icon-grid">
+      <!-- Star — Section Divider -->
+      <div class="icon-item">
+        <svg viewBox="0 0 24 24" fill="var(--gold)"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+        <p>Star — Divider</p>
+      </div>
+      <!-- Star — Badge -->
+      <div class="icon-item">
+        <svg viewBox="0 0 24 24" fill="var(--maroon)"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+        <p>Star — Badge Accent</p>
+      </div>
+      <!-- Star — Ghost / Large -->
+      <div class="icon-item">
+        <svg viewBox="0 0 24 24" fill="rgba(255,255,255,0.06)"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+        <p>Star — Hero Ghost</p>
+      </div>
+      <!-- Bowling Pin -->
+      <div class="icon-item">
+        <svg viewBox="0 0 20 44" width="40" height="88" style="margin:0 auto 12px">
+          <path d="M10 0 C12.5 0 14 2 14 5 C14 8 12 10 12.5 14 C13.5 18 16 22 16 28 C16 34 14 40 13 42 C12.5 43 11.5 44 10 44 C8.5 44 7.5 43 7 42 C6 40 4 34 4 28 C4 22 6.5 18 7.5 14 C8 10 6 8 6 5 C6 2 7.5 0 10 0Z" fill="none" stroke="var(--gold)" stroke-width="1" opacity=".7"/>
+          <!-- Red stripe -->
+          <path d="M7 20 Q10 18 13 20" fill="none" stroke="var(--maroon)" stroke-width="1.5" opacity=".5"/>
+          <path d="M7 22 Q10 24 13 22" fill="none" stroke="var(--maroon)" stroke-width="1.5" opacity=".5"/>
+        </svg>
+        <p>Bowling Pin</p>
+      </div>
+      <!-- Pin Formation (aerial/top-down view) -->
+      <div class="icon-item" style="grid-column:span 2">
+        <svg viewBox="0 0 200 200" width="100%" style="margin:0 auto 12px;max-width:320px">
+          <!-- Row 1: head pin — gold filled -->
+          <circle cx="100" cy="170" r="16" fill="rgba(201,168,76,.15)" stroke="#C9A84C" stroke-width="2"/>
+          <!-- Row 2: 2 pins -->
+          <circle cx="78" cy="128" r="14" fill="rgba(102,0,51,.1)" stroke="#C9A84C" stroke-width="1.8" opacity=".75"/>
+          <circle cx="122" cy="128" r="14" fill="rgba(102,0,51,.1)" stroke="#C9A84C" stroke-width="1.8" opacity=".75"/>
+          <!-- Row 3: 3 pins -->
+          <circle cx="56" cy="86" r="13" fill="none" stroke="#C9A84C" stroke-width="1.5" opacity=".5"/>
+          <circle cx="100" cy="86" r="13" fill="none" stroke="#C9A84C" stroke-width="1.5" opacity=".5"/>
+          <circle cx="144" cy="86" r="13" fill="none" stroke="#C9A84C" stroke-width="1.5" opacity=".5"/>
+          <!-- Row 4: 4 pins -->
+          <circle cx="34" cy="44" r="12" fill="none" stroke="#C9A84C" stroke-width="1.3" opacity=".3"/>
+          <circle cx="78" cy="44" r="12" fill="none" stroke="#C9A84C" stroke-width="1.3" opacity=".3"/>
+          <circle cx="122" cy="44" r="12" fill="none" stroke="#C9A84C" stroke-width="1.3" opacity=".3"/>
+          <circle cx="166" cy="44" r="12" fill="none" stroke="#C9A84C" stroke-width="1.3" opacity=".3"/>
+        </svg>
+        <p>Pin Formation — Aerial View Background Motif</p>
+      </div>
+      <!-- Lane Arrows -->
+      <div class="icon-item" style="grid-column:span 2">
+        <svg viewBox="0 0 340 120" width="100%" style="margin:0 auto 12px;max-width:480px">
+          <!-- 7 lane arrows — proper triangle chevrons, large and visible -->
+          <polygon points="26,95 38,45 50,95" fill="none" stroke="#C9A84C" stroke-width="2" opacity=".35"/>
+          <polygon points="70,85 82,35 94,85" fill="none" stroke="#C9A84C" stroke-width="2" opacity=".5"/>
+          <polygon points="114,70 126,20 138,70" fill="none" stroke="#C9A84C" stroke-width="2.5" opacity=".7"/>
+          <polygon points="158,55 170,5 182,55" fill="#660033" stroke="#C9A84C" stroke-width="2.5" opacity="1"/>
+          <polygon points="202,70 214,20 226,70" fill="none" stroke="#C9A84C" stroke-width="2.5" opacity=".7"/>
+          <polygon points="246,85 258,35 270,85" fill="none" stroke="#C9A84C" stroke-width="2" opacity=".5"/>
+          <polygon points="290,95 302,45 314,95" fill="none" stroke="#C9A84C" stroke-width="2" opacity=".35"/>
+          <!-- Range finder dots -->
+          <circle cx="38" cy="108" r="3" fill="#C9A84C" opacity=".2"/>
+          <circle cx="82" cy="108" r="3" fill="#C9A84C" opacity=".3"/>
+          <circle cx="126" cy="108" r="3.5" fill="#C9A84C" opacity=".4"/>
+          <circle cx="170" cy="108" r="4" fill="#C9A84C" opacity=".6"/>
+          <circle cx="214" cy="108" r="3.5" fill="#C9A84C" opacity=".4"/>
+          <circle cx="258" cy="108" r="3" fill="#C9A84C" opacity=".3"/>
+          <circle cx="302" cy="108" r="3" fill="#C9A84C" opacity=".2"/>
+        </svg>
+        <p>Lane Arrows — Targeting Motif</p>
+      </div>
+    </div>
+
+    <div style="margin-top:48px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px">
+      <h4 style="font-family:var(--font-head);font-weight:700;font-size:14px;text-transform:uppercase;margin-bottom:12px;color:var(--gold)">Usage Guidelines</h4>
+      <ul style="list-style:none;font-size:14px;color:var(--text-secondary);line-height:2">
+        <li style="padding-left:20px;position:relative"><span style="position:absolute;left:0;color:var(--gold)">&#9733;</span> Use the star as section dividers between content areas — flanked by gradient lines</li>
+        <li style="padding-left:20px;position:relative"><span style="position:absolute;left:0;color:var(--gold)">&#9733;</span> Use the star inside verified badges and pricing card headers</li>
+        <li style="padding-left:20px;position:relative"><span style="position:absolute;left:0;color:var(--gold)">&#9733;</span> Use ghost (low opacity) stars as hero backdrop decoration</li>
+        <li style="padding-left:20px;position:relative"><span style="position:absolute;left:0;color:var(--gold)">&#9733;</span> Bowling pin silhouettes appear at low opacity in hero sections and stat bands</li>
+        <li style="padding-left:20px;position:relative"><span style="position:absolute;left:0;color:var(--gold)">&#9733;</span> Lane arrows can be used as directional elements, progress indicators, or subtle background texture — center arrow filled (maroon), flanking arrows outlined with fading opacity</li>
+        <li style="padding-left:20px;position:relative"><span style="position:absolute;left:0;color:var(--gold)">&#9733;</span> Pair lane arrows with range finder dots below for the full lane reference</li>
+        <li style="padding-left:20px;position:relative"><span style="position:absolute;left:0;color:var(--gold)">&#9733;</span> Never use icons as primary content — they are always supporting decoration</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ 08 — PHOTOGRAPHY ═══════════════════════════════════ -->
+<section id="photography" class="brand-section" style="border-bottom:none">
+  <div class="container">
+    <div class="star-divider">
+      <svg viewBox="0 0 24 24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+    </div>
+    <div class="section-label">08 &mdash; Imagery</div>
+    <h2 class="section-title">Photography</h2>
+    <p class="section-desc">Photography should feel real, warm, and confident. Every image reinforces the brand's authenticity.</p>
+
+    <div class="photo-showcase">
+      <div class="photo-frame">
+        <img src="diandra.jpg" alt="Diandra — Brand Photography Example">
+      </div>
+      <div>
+        <h3 style="font-family:var(--font-head);font-weight:700;font-size:18px;text-transform:uppercase;margin-bottom:16px;color:var(--gold)">Photo Style Guide</h3>
+        <ul class="photo-guidelines">
+          <li>Warm tones that complement maroon and gold accents</li>
+          <li>Bowling alley settings — lanes, pins, scoring areas</li>
+          <li>Confident, natural poses — never stiff or overly posed</li>
+          <li>Authentic moments: mid-throw, celebrating, strategizing</li>
+          <li>Good natural or ambient lighting — avoid harsh flash</li>
+          <li>Never use generic stock photography</li>
+          <li>Athletes should look focused, determined, and proud</li>
+          <li>Background depth of field keeps focus on the athlete</li>
+        </ul>
+        <div style="margin-top:32px;padding:20px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px">
+          <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">Color Treatment</div>
+          <p style="font-size:13px;color:var(--text-secondary);line-height:1.7">Photos on dark backgrounds may receive a subtle maroon overlay (rgba(102,0,51,0.1)) to unify warm tones with the brand palette. Never desaturate or apply cold filters.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ FOOTER ═══════════════════════════════════ -->
+<footer style="background:var(--bg2);border-top:1px solid rgba(255,255,255,.06);padding:48px 32px;text-align:center">
+  <img src="logo-white.png" alt="Striking Showcase" style="height:32px;margin:0 auto 16px">
+  <p style="font-family:var(--font-mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:8px">Brand Book v1.0 &mdash; March 2026</p>
+  <p style="font-size:13px;color:var(--text-tertiary)">Striking Showcase. All rights reserved.</p>
+</footer>
+
+</body>
+</html>
