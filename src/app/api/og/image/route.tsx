@@ -5,8 +5,8 @@ import prisma from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const id = request.nextUrl.searchParams.get('id');
-  if (!id) {
+  const slug = request.nextUrl.searchParams.get('slug');
+  if (!slug) {
     return new ImageResponse(
       (
         <div
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const athlete = await prisma.athleteProfile.findUnique({
-      where: { id },
+      where: { slug },
       select: {
         firstName: true,
         lastName: true,

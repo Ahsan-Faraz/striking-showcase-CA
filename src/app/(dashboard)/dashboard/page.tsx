@@ -1,73 +1,24 @@
-'use client';
-
-import { useEffect, useState } from 'react';
+import { redirect } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { StatBlock } from '@/components/ui/StatBlock';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
+import { verifySession, getProfileCompletion, getRecentProfileViews, getQuickStats, getRecentInquiries } from '@/lib/dal';
 
-interface DashboardData {
-  profile: {
-    firstName: string;
-    lastName: string;
-    seasonAverage: number | null;
-    highGame: number | null;
-    highSeries: number | null;
-    profileCompletion: number;
-  };
-  stats: {
-    profileViews: number;
-    watchlistCount: number;
-    unreadMessages: number;
-    tournamentsPlayed: number;
-  };
-  recentActivity: Array<{
-    id: string;
-    type: string;
-    title: string;
-    description: string;
-    createdAt: string;
-  }>;
-}
+export default async function DashboardPage() {
+  const user = await verifySession();
+  if (!user) redirect('/login');
 
-export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const profile = user.athleteProfile;
+  if (!profile) redirect('/onboarding');
 
-  useEffect(() => {
-    // In production, fetch from API. Using demo data for now.
-    setData({
-      profile: {
-        firstName: 'Autumn',
-        lastName: 'Strode',
-        seasonAverage: 213.5,
-        highGame: 289,
-        highSeries: 782,
-        profileCompletion: 72,
-      },
-      stats: {
-        profileViews: 47,
-        watchlistCount: 8,
-        unreadMessages: 3,
-        tournamentsPlayed: 12,
-      },
-      recentActivity: [
-        { id: '1', type: 'PROFILE_VIEW', title: 'Profile Viewed', description: 'A coach from Wichita State viewed your profile', createdAt: new Date(Date.now() - 3600000).toISOString() },
-        { id: '2', type: 'WATCHLIST_ADD', title: 'Added to Watchlist', description: 'You were added to a coach watchlist', createdAt: new Date(Date.now() - 7200000).toISOString() },
-        { id: '3', type: 'STAT_UPDATE', title: 'Stats Updated', description: 'Season average updated to 213.5', createdAt: new Date(Date.now() - 86400000).toISOString() },
-      ],
-    });
-    setLoading(false);
-  }, []);
-
-  if (loading || !data) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin w-8 h-8 border-2 border-gold border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+  // Parallel data fetches — never sequential awaits
+  const [completion, recentViews, stats, inquiries] = await Promise.all([
+    getProfileCompletion(user.id),
+    getRecentProfileViews(profile.id),
+    getQuickStats(profile.id, user.id),
+    getRecentInquiries(profile.id),
+  ]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -76,16 +27,18 @@ export default function DashboardPage() {
         <div>
           <p className="section-label mb-1">Dashboard</p>
           <h1 className="font-heading text-2xl sm:text-4xl font-bold">
-            Welcome back, <span className="text-gradient-gold">{data.profile.firstName}</span>
+            Welcome back, <span className="text-gradient-gold">{profile.firstName}</span>
           </h1>
           <p className="text-sm text-[var(--text-secondary)] mt-2">
             Here&apos;s what&apos;s happening with your profile
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href="/athlete/preview">
-            <Button variant="secondary" size="sm">Preview Portfolio</Button>
-          </Link>
+          {profile.slug && (
+            <Link href={`/${profile.slug}`}>
+              <Button variant="secondary" size="sm">View Public Profile</Button>
+            </Link>
+          )}
           <Link href="/profile">
             <Button variant="primary" size="sm">Edit Profile</Button>
           </Link>
@@ -93,17 +46,17 @@ export default function DashboardPage() {
       </div>
 
       {/* Profile Completion Banner */}
-      {data.profile.profileCompletion < 100 && (
+      {completion.percentage < 100 && (
         <Card variant="accent" padding="md" className="animate-in-delay-1">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl bg-gold/15 border border-gold/20 flex items-center justify-center shrink-0">
-                <span className="font-heading text-lg font-bold text-gold">{data.profile.profileCompletion}%</span>
+                <span className="font-heading text-lg font-bold text-gold">{completion.percentage}%</span>
               </div>
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)]">Complete Your Profile</p>
                 <p className="text-xs text-[var(--text-secondary)]">
-                  A complete profile is 5x more likely to be viewed by coaches
+                  {completion.nextAction}
                 </p>
               </div>
             </div>
@@ -114,7 +67,7 @@ export default function DashboardPage() {
           <div className="mt-4 h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-maroon to-gold transition-all duration-1000"
-              style={{ width: `${data.profile.profileCompletion}%` }}
+              style={{ width: `${completion.percentage}%` }}
             />
           </div>
         </Card>
@@ -123,18 +76,18 @@ export default function DashboardPage() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-in-delay-1">
         <Card hoverable className="border-t-2 border-t-gold/40">
-          <StatBlock value={data.stats.profileViews} label="Profile Views" trend={{ value: 12, positive: true }} />
+          <StatBlock value={recentViews} label="Views (7d)" />
         </Card>
         <Card hoverable className="border-t-2 border-t-gold/40">
-          <StatBlock value={data.stats.watchlistCount} label="On Watchlists" trend={{ value: 2, positive: true }} />
+          <StatBlock value={stats.watchlistCount} label="On Watchlists" />
         </Card>
         <Card hoverable className="border-t-2 border-t-maroon/40">
           <Link href="/messages" className="block">
-            <StatBlock value={data.stats.unreadMessages} label="Unread Messages" />
+            <StatBlock value={stats.unreadMessages} label="Unread Messages" />
           </Link>
         </Card>
         <Card hoverable className="border-t-2 border-t-maroon/40">
-          <StatBlock value={data.stats.tournamentsPlayed} label="Tournaments" />
+          <StatBlock value={stats.totalInquiries} label="Inquiries" />
         </Card>
       </div>
 
@@ -152,20 +105,19 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="text-center p-5 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-secondary)] hover:border-gold/20 transition-colors">
                   <p className="font-heading text-3xl font-bold text-gold">
-                    {data.profile.seasonAverage?.toFixed(1) || '--'}
+                    {profile.seasonAverage?.toFixed(1) ?? '--'}
                   </p>
                   <p className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider mt-1 font-mono">Season Avg</p>
-                  <Badge variant="verified" className="mt-2">D1 Ready</Badge>
                 </div>
                 <div className="text-center p-5 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-secondary)] hover:border-gold/20 transition-colors">
                   <p className="font-heading text-3xl font-bold text-[var(--text-primary)]">
-                    {data.profile.highGame || '--'}
+                    {profile.highGame ?? '--'}
                   </p>
                   <p className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider mt-1 font-mono">High Game</p>
                 </div>
                 <div className="text-center p-5 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-secondary)] hover:border-gold/20 transition-colors">
                   <p className="font-heading text-3xl font-bold text-[var(--text-primary)]">
-                    {data.profile.highSeries || '--'}
+                    {profile.highSeries ?? '--'}
                   </p>
                   <p className="text-xs text-[var(--text-tertiary)] uppercase tracking-wider mt-1 font-mono">High Series</p>
                 </div>
@@ -174,38 +126,30 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Recent Activity */}
+        {/* Recent Inquiries */}
         <Card>
           <CardHeader>
-            <CardTitle>Activity</CardTitle>
+            <CardTitle>Recent Inquiries</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data.recentActivity.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors">
+              {inquiries.length === 0 && (
+                <p className="text-xs text-[var(--text-tertiary)] text-center py-4">No inquiries yet</p>
+              )}
+              {inquiries.map((inquiry) => (
+                <Link key={inquiry.id} href="/messages" className="flex items-start gap-3 p-2 rounded-lg hover:bg-[var(--bg-card)] transition-colors">
                   <div className="w-9 h-9 rounded-lg bg-maroon/15 border border-maroon/20 flex items-center justify-center shrink-0 mt-0.5">
-                    {activity.type === 'PROFILE_VIEW' && (
-                      <svg className="w-4 h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    )}
-                    {activity.type === 'WATCHLIST_ADD' && (
-                      <svg className="w-4 h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-                      </svg>
-                    )}
-                    {activity.type === 'STAT_UPDATE' && (
-                      <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75z" />
-                      </svg>
-                    )}
+                    <svg className="w-4 h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                    </svg>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-[var(--text-primary)]">{activity.title}</p>
-                    <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{activity.description}</p>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{inquiry.coach.school ?? 'Coach'}</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-0.5 truncate">
+                      {inquiry.messages[0]?.content ?? 'No messages'}
+                    </p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </CardContent>

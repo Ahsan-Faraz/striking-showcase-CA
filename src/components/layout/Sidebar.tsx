@@ -2,8 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -24,7 +25,7 @@ const coachNavItems: NavItem[] = [
   },
   {
     label: 'View Program Profile',
-    href: '/coach/demo-coach',
+    href: '/portal/profile',
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
@@ -200,8 +201,19 @@ function CompletionRing({ percentage }: { percentage: number }) {
   );
 }
 
-export function Sidebar({ role }: { role?: 'ATHLETE' | 'COACH' | 'ADMIN' | 'PARENT' }) {
+interface SidebarProps {
+  role?: 'ATHLETE' | 'COACH' | 'ADMIN' | 'PARENT';
+  athleteName?: string;
+  classYear?: number;
+  completionPercentage?: number;
+  slug?: string | null;
+  coachName?: string;
+  coachSchool?: string;
+}
+
+export function Sidebar({ role, athleteName, classYear, completionPercentage = 0, slug, coachName, coachSchool }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isDark, setIsDark] = useState(true);
@@ -286,11 +298,11 @@ export function Sidebar({ role }: { role?: 'ATHLETE' | 'COACH' | 'ADMIN' | 'PARE
           {isCoach ? (
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-full bg-gradient-to-br from-maroon to-maroon-dark flex items-center justify-center shrink-0 border border-gold/20">
-                <span className="font-heading text-xs font-bold text-gold/80">CW</span>
+                <span className="font-heading text-xs font-bold text-gold/80">{(coachName || 'C').slice(0, 2).toUpperCase()}</span>
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[var(--text-primary)] truncate">Coach Williams</p>
-                <p className="text-xs text-[var(--text-tertiary)] font-mono">Michigan State</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{coachName || 'Coach'}</p>
+                <p className="text-xs text-[var(--text-tertiary)] font-mono">{coachSchool || ''}</p>
               </div>
             </div>
           ) : isAdmin ? (
@@ -306,16 +318,16 @@ export function Sidebar({ role }: { role?: 'ATHLETE' | 'COACH' | 'ADMIN' | 'PARE
           ) : (
             <>
               <div className="flex items-center gap-3">
-                <CompletionRing percentage={72} />
+                <CompletionRing percentage={completionPercentage} />
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[var(--text-primary)] truncate">Autumn S.</p>
-                  <p className="text-xs text-[var(--text-tertiary)] font-mono">Class of 2026</p>
+                  <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{athleteName || 'Athlete'}</p>
+                  <p className="text-xs text-[var(--text-tertiary)] font-mono">{classYear ? `Class of ${classYear}` : ''}</p>
                 </div>
               </div>
               <div className="mt-3 h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-[#660033] to-[#C9A84C]" />
+                <div className="h-full rounded-full bg-gradient-to-r from-[#660033] to-[#C9A84C]" style={{ width: `${completionPercentage}%` }} />
               </div>
-              <p className="text-[10px] text-[var(--text-tertiary)] mt-1.5 font-mono">Profile 72% complete</p>
+              <p className="text-[10px] text-[var(--text-tertiary)] mt-1.5 font-mono">Profile {completionPercentage}% complete</p>
             </>
           )}
         </div>
@@ -379,6 +391,20 @@ export function Sidebar({ role }: { role?: 'ATHLETE' | 'COACH' | 'ADMIN' | 'PARE
               </div>
             </div>
           )}
+        </button>
+        {/* Logout */}
+        <button
+          onClick={async () => {
+            const supabase = createSupabaseBrowserClient();
+            await supabase.auth.signOut();
+            router.push('/login');
+          }}
+          className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-xs text-[var(--text-tertiary)] hover:bg-red-500/10 hover:text-red-500 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+          </svg>
+          {!collapsed && <span>Log Out</span>}
         </button>
         {/* Collapse */}
         <button

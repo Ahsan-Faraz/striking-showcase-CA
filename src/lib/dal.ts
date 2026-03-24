@@ -2,6 +2,7 @@
  * Data Access Layer — ALL DB access goes through here.
  * Verifies session before every query. No demo fallbacks.
  */
+import 'server-only';
 import { cache } from 'react';
 import { NextRequest } from 'next/server';
 import prisma from './prisma';
@@ -9,7 +10,81 @@ import { createSupabaseServerClient } from './supabase/server';
 import { verifyToken, type JWTPayload } from './auth';
 import type { Role } from '@prisma/client';
 
+const USER_INCLUDES = {
+  athleteProfile: true,
+  coachProfile: true,
+  subscription: true,
+} as const;
+
 export type SessionUser = NonNullable<Awaited<ReturnType<typeof _verifySession>>>;
+
+/**
+ * Look up Prisma User by Supabase user ID or email.
+ * If no record exists, lazily create one from user_metadata.
+ */
+async function findOrCreatePrismaUser(supabaseUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }) {
+  // 1. Try by Supabase UUID
+  let dbUser = await prisma.user.findUnique({
+    where: { id: supabaseUser.id },
+    include: USER_INCLUDES,
+  });
+  if (dbUser) return dbUser;
+
+  // 2. Try by email
+  if (supabaseUser.email) {
+    dbUser = await prisma.user.findUnique({
+      where: { email: supabaseUser.email },
+      include: USER_INCLUDES,
+    });
+    if (dbUser) return dbUser;
+  }
+
+  // 3. Lazy sync — create Prisma record from Supabase user_metadata
+  const metadata = supabaseUser.user_metadata ?? {};
+  const role: Role = (['ATHLETE', 'COACH', 'ADMIN', 'PARENT'] as const).includes(metadata.role as Role)
+    ? (metadata.role as Role)
+    : 'ATHLETE';
+
+  try {
+    dbUser = await prisma.user.create({
+      data: {
+        id: supabaseUser.id,
+        email: supabaseUser.email!,
+        role,
+        athleteProfile:
+          role === 'ATHLETE'
+            ? {
+                create: {
+                  firstName: (metadata.first_name as string) || '',
+                  lastName: (metadata.last_name as string) || '',
+                  classYear: metadata.class_year
+                    ? parseInt(String(metadata.class_year), 10)
+                    : new Date().getFullYear() + 2,
+                },
+              }
+            : undefined,
+        coachProfile:
+          role === 'COACH'
+            ? {
+                create: {
+                  school: (metadata.school as string) || 'Unknown',
+                },
+              }
+            : undefined,
+      },
+      include: USER_INCLUDES,
+    });
+    return dbUser;
+  } catch {
+    // Unique constraint race — retry lookup
+    return prisma.user.findFirst({
+      where: {
+        OR: [{ id: supabaseUser.id }, { email: supabaseUser.email! }],
+      },
+      include: USER_INCLUDES,
+    });
+  }
+}
 
 /**
  * Verify session: tries Supabase Auth first, falls back to
@@ -21,26 +96,7 @@ async function _verifySession() {
     const supabase = createSupabaseServerClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (user && !error) {
-      const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        include: {
-          athleteProfile: true,
-          coachProfile: true,
-          subscription: true,
-        },
-      });
-      if (dbUser) return dbUser;
-
-      // Supabase user exists but no Prisma record — try by email
-      const byEmail = await prisma.user.findUnique({
-        where: { email: user.email! },
-        include: {
-          athleteProfile: true,
-          coachProfile: true,
-          subscription: true,
-        },
-      });
-      if (byEmail) return byEmail;
+      return findOrCreatePrismaUser(user);
     }
   } catch {
     // Supabase not configured — fall through to JWT
@@ -56,15 +112,10 @@ async function _verifySession() {
     const payload = verifyToken(token);
     if (!payload) return null;
 
-    const dbUser = await prisma.user.findUnique({
+    return prisma.user.findUnique({
       where: { id: payload.userId },
-      include: {
-        athleteProfile: true,
-        coachProfile: true,
-        subscription: true,
-      },
+      include: USER_INCLUDES,
     });
-    return dbUser;
   } catch {
     return null;
   }
@@ -75,7 +126,7 @@ export const verifySession = cache(_verifySession);
 
 /**
  * Verify session from a NextRequest (API Route Handlers).
- * Checks Authorization header, then cookies.
+ * Checks Supabase Auth first, then Authorization header / cookie JWT.
  */
 export async function verifySessionFromRequest(request: NextRequest) {
   // 1. Try Supabase Auth
@@ -83,25 +134,7 @@ export async function verifySessionFromRequest(request: NextRequest) {
     const supabase = createSupabaseServerClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (user && !error) {
-      const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        include: {
-          athleteProfile: true,
-          coachProfile: true,
-          subscription: true,
-        },
-      });
-      if (dbUser) return dbUser;
-
-      const byEmail = await prisma.user.findUnique({
-        where: { email: user.email! },
-        include: {
-          athleteProfile: true,
-          coachProfile: true,
-          subscription: true,
-        },
-      });
-      if (byEmail) return byEmail;
+      return findOrCreatePrismaUser(user);
     }
   } catch {
     // Supabase not configured — fall through to JWT
@@ -123,15 +156,177 @@ export async function verifySessionFromRequest(request: NextRequest) {
 
   return prisma.user.findUnique({
     where: { id: payload.userId },
-    include: {
-      athleteProfile: true,
-      coachProfile: true,
-      subscription: true,
+    include: USER_INCLUDES,
+  });
+}
+
+// ─── PUBLIC PROFILE ────────────────────────────────────────
+/** Fetch public profile by slug. Returns null if not found or not public. */
+export async function getPublicProfile(slug: string) {
+  const profile = await prisma.athleteProfile.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      slug: true,
+      firstName: true,
+      lastName: true,
+      classYear: true,
+      location: true,
+      state: true,
+      school: true,
+      gender: true,
+      bio: true,
+      profilePhotoUrl: true,
+      profileVisibility: true,
+      isActivelyRecruiting: true,
+      divisionInterest: true,
+      preferredDivisions: true,
+      seasonAverage: true,
+      highGame: true,
+      highSeries: true,
+      revRate: true,
+      ballSpeed: true,
+      pap: true,
+      axisTilt: true,
+      axisRotation: true,
+      spareConversion: true,
+      dominantHand: true,
+      style: true,
+      gpa: true,
+      act: true,
+      sat: true,
+      ncaaStatus: true,
+      intendedMajor: true,
+      usbcId: true,
+      tournaments: {
+        orderBy: { date: 'desc' },
+        take: 20,
+        select: { id: true, name: true, date: true, place: true, average: true, format: true },
+      },
+      arsenal: {
+        orderBy: { sortOrder: 'asc' },
+        select: { id: true, name: true, brand: true, weight: true, coverstock: true, layout: true, core: true, surface: true },
+      },
+      media: {
+        where: { isPublic: true },
+        orderBy: { sortOrder: 'asc' },
+        take: 20,
+        select: { id: true, type: true, url: true, thumbnailUrl: true, title: true, duration: true, isFeatured: true, sortOrder: true },
+      },
+      collegeTargets: {
+        select: { id: true, schoolName: true, division: true, conference: true, status: true },
+      },
+    },
+  });
+  if (!profile || profile.profileVisibility !== 'PUBLIC') return null;
+  return profile;
+}
+
+// ─── DASHBOARD STATS ───────────────────────────────────────
+
+/** Profile completion % using the exact formula from spec. */
+export async function getProfileCompletion(userId: string): Promise<{ percentage: number; nextAction: string }> {
+  const profile = await prisma.athleteProfile.findUnique({
+    where: { userId },
+    select: {
+      profilePhotoUrl: true,
+      bio: true,
+      seasonAverage: true,
+      highGame: true,
+      highSeries: true,
+      revRate: true,
+      ballSpeed: true,
+      pap: true,
+      axisTilt: true,
+      axisRotation: true,
+      usbcId: true,
+      _count: {
+        select: {
+          media: { where: { type: 'video', isFeatured: true } },
+          arsenal: true,
+          tournaments: true,
+          collegeTargets: true,
+        },
+      },
+    },
+  });
+  if (!profile) return { percentage: 0, nextAction: 'Complete your profile to get started' };
+
+  let pct = 0;
+  const missing: string[] = [];
+
+  // Photo uploaded: 15%
+  if (profile.profilePhotoUrl) { pct += 15; } else { missing.push('Upload a profile photo (+15%)'); }
+
+  // Bio written (min 50 chars): 10%
+  if (profile.bio && profile.bio.length >= 50) { pct += 10; } else { missing.push('Write a bio of at least 50 characters (+10%)'); }
+
+  // All bowling stats filled: 20%
+  const statsArray = [profile.seasonAverage, profile.highGame, profile.highSeries, profile.revRate, profile.ballSpeed];
+  const statsFilled = statsArray.filter((s) => s != null).length;
+  if (statsFilled === statsArray.length) { pct += 20; } else { missing.push(`Fill all 5 bowling stat fields (+20%)`); }
+
+  // At least 1 highlight video: 15%
+  if (profile._count.media > 0) { pct += 15; } else { missing.push('Add a highlight video (+15%)'); }
+
+  // At least 3 ball arsenal entries: 10%
+  if (profile._count.arsenal >= 3) { pct += 10; } else { missing.push(`Add ${3 - profile._count.arsenal} more ball arsenal entries (+10%)`); }
+
+  // At least 3 tournament results: 10%
+  if (profile._count.tournaments >= 3) { pct += 10; } else { missing.push(`Add ${3 - profile._count.tournaments} more tournament results (+10%)`); }
+
+  // At least 1 college target: 10%
+  if (profile._count.collegeTargets > 0) { pct += 10; } else { missing.push('Add at least 1 college target (+10%)'); }
+
+  // USBC ID linked: 10%
+  if (profile.usbcId) { pct += 10; } else { missing.push('Link your USBC ID (+10%)'); }
+
+  return { percentage: pct, nextAction: missing[0] ?? 'Your profile is 100% complete!' };
+}
+
+/** Recent profile views in the last 7 days. */
+export async function getRecentProfileViews(profileId: string): Promise<number> {
+  const since = new Date();
+  since.setDate(since.getDate() - 7);
+  return prisma.profileView.count({
+    where: { athleteId: profileId, createdAt: { gte: since } },
+  });
+}
+
+/** Recent coach inquiries (last 5 threads). */
+export async function getRecentInquiries(athleteId: string) {
+  return prisma.messageThread.findMany({
+    where: { athleteId },
+    orderBy: { lastMessageAt: 'desc' },
+    take: 5,
+    select: {
+      id: true,
+      lastMessageAt: true,
+      coach: { select: { school: true } },
+      messages: { orderBy: { createdAt: 'desc' }, take: 1, select: { content: true, createdAt: true } },
     },
   });
 }
 
-/** Require specific role — returns 403-style null if role doesn't match. */
+/** Quick stats for the dashboard. */
+export async function getQuickStats(profileId: string, userId: string) {
+  const [totalViews, totalInquiries, completion, watchlistCount, unreadMessages] = await Promise.all([
+    prisma.profileView.count({ where: { athleteId: profileId } }),
+    prisma.messageThread.count({ where: { athleteId: profileId } }),
+    getProfileCompletion(userId),
+    prisma.watchlist.count({ where: { athleteId: profileId } }),
+    prisma.message.count({
+      where: {
+        thread: { athleteId: profileId },
+        readAt: null,
+        NOT: { senderId: userId },
+      },
+    }),
+  ]);
+  return { totalViews, totalInquiries, profileCompletion: completion.percentage, watchlistCount, unreadMessages };
+}
+
+/** Require specific role — returns false if role doesn't match. */
 export function requireRole(user: SessionUser, role: Role): boolean {
   return user.role === role;
 }

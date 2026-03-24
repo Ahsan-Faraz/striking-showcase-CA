@@ -454,7 +454,8 @@ export default function AthletePreviewPage() {
   const [layout, setLayout] = useState<LayoutType>('classic');
   const [theme, setTheme] = useState<Theme>('dark');
   const [colorScheme, setColorScheme] = useState<ColorScheme>('MAROON');
-  const [athlete, setAthlete] = useState(defaultAthlete);
+  const [athlete, setAthlete] = useState<typeof defaultAthlete | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showSticky, setShowSticky] = useState(false);
   const [mediaTab, setMediaTab] = useState<'videos' | 'photos'>('videos');
   const heroRef = useRef<HTMLDivElement>(null);
@@ -480,13 +481,20 @@ export default function AthletePreviewPage() {
             setAthlete(mapped);
           } catch (e) {
             console.error('Failed to map athlete data:', e);
+            setAthlete(defaultAthlete);
           }
           if (data.athlete.colorScheme) {
             setColorScheme(data.athlete.colorScheme as ColorScheme);
           }
+        } else {
+          setAthlete(defaultAthlete);
         }
       })
-      .catch((e) => console.error('Failed to fetch athlete:', e));
+      .catch((e) => {
+        console.error('Failed to fetch athlete:', e);
+        setAthlete(defaultAthlete);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -663,6 +671,35 @@ export default function AthletePreviewPage() {
 
       {/* Spacer for fixed control bar */}
       <div style={{ height: 56 }} />
+
+      {/* Loading state — prevents flash of mock data */}
+      {(loading || !athlete) ? (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 'calc(100vh - 56px)',
+          gap: 16,
+        }}>
+          <div style={{
+            width: 48,
+            height: 48,
+            borderRadius: '50%',
+            border: `3px solid ${C.border}`,
+            borderTopColor: C.gold,
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <p style={{
+            fontFamily: 'var(--font-dm-mono), monospace',
+            fontSize: 13,
+            color: C.textMuted,
+            letterSpacing: '0.06em',
+          }}>Loading your portfolio...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      ) : (
+      <>
 
       {/* ═══════════════════════════════════════════════════
            LAYOUT 1: CLASSIC
@@ -2269,6 +2306,8 @@ export default function AthletePreviewPage() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

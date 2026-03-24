@@ -8,6 +8,303 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String?
+  role           Role
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  athleteProfile AthleteProfile?
+  auditLogs      AuditLog[]
+  coachProfile   CoachProfile?
+  familyAccess   FamilyAccess[]  @relation("parent")
+  sentMessages   Message[]       @relation("sender")
+  notifications  Notification[]
+  profileViews   ProfileView[]   @relation("viewer")
+  reports        Report[]        @relation("reporter")
+  subscription   Subscription?
+}
+
+model AthleteProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  slug      String? @unique
+  firstName String
+  lastName  String
+  classYear Int
+  location  String?
+  state     String?
+  school    String?
+  gender    String?
+
+  dominantHand DominantHand?
+  style        BowlingStyle?
+
+  coachName    String?
+  coachContact String?
+  proShop      String?
+  bowlingCenter String?
+
+  bio             String? @db.Text
+  profilePhotoUrl String?
+
+  gpa          Float?
+  act          Int?
+  sat          Int?
+  ncaaStatus   String? @default("Pending")
+  intendedMajor String?
+
+  usbcId       String?
+  usbcVerified Boolean @default(false)
+
+  seasonAverage   Float?
+  highGame        Int?
+  highSeries      Int?
+  revRate         Int?
+  ballSpeed       Float?
+  pap             String?
+  axisTilt        Float?
+  axisRotation    Float?
+  spareConversion Float?
+
+  preferredDivisions String[]
+  preferredRegions   String[]
+
+  usbcClub        String?
+
+  profileVisibility  ProfileVisibility @default(PUBLIC)
+  portfolioLayout    PortfolioLayout   @default(CLASSIC)
+  portfolioTheme     String            @default("dark")
+  colorScheme        ColorScheme       @default(MAROON)
+
+  isActivelyRecruiting Boolean @default(true)
+
+  divisionInterest String?
+  themeJson        Json?
+
+  tournaments    Tournament[]
+  arsenal        BallArsenal[]
+  media          Media[]
+  collegeTargets CollegeTarget[]
+  profileViews   ProfileView[]
+  watchlistedBy  Watchlist[]
+  threads        MessageThread[] @relation("athleteThread")
+  familyAccess   FamilyAccess[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([seasonAverage])
+  @@index([classYear])
+  @@index([state])
+}
+
+model Tournament {
+  id        String         @id @default(cuid())
+  athleteId String
+  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  name      String
+  place     Int
+  average   Float
+  date      String
+  format    String?
+  createdAt DateTime       @default(now())
+}
+
+model BallArsenal {
+  id            String         @id @default(cuid())
+  athleteId     String
+  athlete       AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  name          String
+  brand         String?
+  weight        Int            @default(15)
+  condition     String?
+  coverstock    String?
+  core          String?
+  surface       String?
+  layout        String?
+  notes         String?        @db.Text
+  pinToPap      String?
+  valAngle      String?
+  drillingAngle String?
+  isPrimary     Boolean        @default(false)
+  sortOrder     Int            @default(0)
+  createdAt     DateTime       @default(now())
+}
+
+model Media {
+  id           String         @id @default(cuid())
+  athleteId    String
+  athlete      AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  type         String
+  url          String
+  thumbnailUrl String?
+  title        String?
+  duration     Int?
+  viewCount    Int            @default(0)
+  isPublic     Boolean        @default(true)
+  isFeatured   Boolean        @default(false)
+  sortOrder    Int            @default(0)
+  createdAt    DateTime       @default(now())
+}
+
+model CoachProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school     String
+  division   String?
+  conference String?
+  sport      String?
+  title      String?
+  isVerified Boolean  @default(false)
+  verifiedAt DateTime?
+  rosterSize Int?
+  openSpots  Int?
+  watchlist  Watchlist[]
+  threads    MessageThread[] @relation("coachThread")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model MessageThread {
+  id            String         @id @default(cuid())
+  athleteId     String
+  athlete       AthleteProfile @relation("athleteThread", fields: [athleteId], references: [id])
+  coachId       String
+  coach         CoachProfile   @relation("coachThread", fields: [coachId], references: [id])
+  messages      Message[]
+  lastMessageAt DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+
+  @@unique([athleteId, coachId])
+}
+
+model Message {
+  id         String        @id @default(cuid())
+  threadId   String
+  thread     MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User          @relation("sender", fields: [senderId], references: [id])
+  senderRole Role
+  content    String        @db.Text
+  readAt     DateTime?
+  createdAt  DateTime      @default(now())
+}
+
+model Watchlist {
+  id        String         @id @default(cuid())
+  coachId   String
+  coach     CoachProfile   @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  athleteId String
+  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  status    WatchlistStatus @default(TRACKING)
+  notes     String?        @db.Text
+  contacted Boolean        @default(false)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @default(now()) @updatedAt
+
+  @@unique([coachId, athleteId])
+}
+
+model ProfileView {
+  id         String         @id @default(cuid())
+  athleteId  String
+  athlete    AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  viewerId   String?
+  viewer     User?          @relation("viewer", fields: [viewerId], references: [id])
+  viewerType String?
+  source     String?
+  createdAt  DateTime       @default(now())
+
+  @@index([athleteId, createdAt])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  description String?
+  read        Boolean          @default(false)
+  actionUrl   String?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, read])
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  reporterId  String
+  reporter    User         @relation("reporter", fields: [reporterId], references: [id])
+  reportedId  String
+  type        ReportType
+  description String       @db.Text
+  status      ReportStatus @default(PENDING)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime     @default(now())
+}
+
+model FamilyAccess {
+  id           String         @id @default(cuid())
+  athleteId    String
+  athlete      AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  parentId     String
+  parent       User           @relation("parent", fields: [parentId], references: [id])
+  email        String?
+  name         String?
+  relationship String?
+  permissions  String[]
+  inviteCode   String?        @unique
+  acceptedAt   DateTime?
+  status       String         @default("active")
+  createdAt    DateTime       @default(now())
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  plan                 Plan               @default(FREE)
+  status               SubscriptionStatus @default(TRIALING)
+  currentPeriodEnd     DateTime?
+  trialEndsAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  admin      User     @relation(fields: [adminId], references: [id])
+  action     String
+  targetType String?
+  targetId   String?
+  details    String?  @db.Text
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+}
+
+model CollegeTarget {
+  id         String              @id @default(cuid())
+  athleteId  String
+  athlete    AthleteProfile      @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  schoolName String
+  division   String?
+  conference String?
+  status     CollegeTargetStatus @default(INTERESTED)
+  notes      String?             @db.Text
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+}
+
 enum Role {
   ATHLETE
   PARENT
@@ -26,8 +323,26 @@ enum BowlingStyle {
 }
 
 enum Plan {
-  FREE_TRIAL
-  MONTHLY
+  FREE
+  PRO
+  FAMILY
+}
+
+enum WatchlistStatus {
+  TRACKING
+  CONTACTED
+  VISITED
+  OFFERED
+  COMMITTED
+  PASSED
+}
+
+enum CollegeTargetStatus {
+  INTERESTED
+  APPLIED
+  VISITED
+  OFFERED
+  COMMITTED
 }
 
 enum SubscriptionStatus {
@@ -79,270 +394,4 @@ enum NotificationType {
   VIDEO_UPLOAD
   TOURNAMENT_REMINDER
   SYSTEM
-}
-
-model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String?
-  role         Role
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  athleteProfile AthleteProfile?
-  coachProfile   CoachProfile?
-  sentMessages   Message[]      @relation("sender")
-  notifications  Notification[]
-  profileViews   ProfileView[]  @relation("viewer")
-  reports        Report[]       @relation("reporter")
-  subscription   Subscription?
-  familyAccess   FamilyAccess[] @relation("parent")
-  auditLogs      AuditLog[]
-}
-
-model AthleteProfile {
-  id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  firstName String
-  lastName  String
-  classYear Int
-  location  String?
-  state     String?
-  school    String?
-  gender    String?
-
-  dominantHand DominantHand?
-  style        BowlingStyle?
-
-  coachName    String?
-  coachContact String?
-  proShop      String?
-  bowlingCenter String?
-
-  bio             String? @db.Text
-  profilePhotoUrl String?
-
-  gpa          Float?
-  act          Int?
-  sat          Int?
-  ncaaStatus   String? @default("Pending")
-  intendedMajor String?
-
-  usbcId       String?
-  usbcVerified Boolean @default(false)
-
-  seasonAverage   Float?
-  highGame        Int?
-  highSeries      Int?
-  revRate         Int?
-  ballSpeed       Float?
-  pap             String?
-  axisTilt        Float?
-  axisRotation    Float?
-  spareConversion Float?
-
-  preferredDivisions String[]
-  preferredRegions   String[]
-
-  usbcClub        String?
-
-  profileVisibility  ProfileVisibility @default(PUBLIC)
-  portfolioLayout    PortfolioLayout   @default(CLASSIC)
-  portfolioTheme     String            @default("dark")
-  colorScheme        ColorScheme       @default(MAROON)
-
-  isActivelyRecruiting Boolean @default(true)
-
-  tournaments  Tournament[]
-  arsenal      BallArsenal[]
-  media        Media[]
-  profileViews ProfileView[]
-  watchlistedBy Watchlist[]
-  threads      MessageThread[] @relation("athleteThread")
-  familyAccess FamilyAccess[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([seasonAverage])
-  @@index([classYear])
-  @@index([state])
-}
-
-model Tournament {
-  id        String         @id @default(cuid())
-  athleteId String
-  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  name      String
-  place     Int
-  average   Float
-  date      String
-  format    String?
-  createdAt DateTime       @default(now())
-}
-
-model BallArsenal {
-  id        String         @id @default(cuid())
-  athleteId String
-  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  name      String
-  brand     String?
-  weight        Int            @default(15)
-  condition     String?
-  coverstock    String?
-  pinToPap      String?
-  valAngle      String?
-  drillingAngle String?
-  isPrimary     Boolean        @default(false)
-  sortOrder Int            @default(0)
-  createdAt DateTime       @default(now())
-}
-
-model Media {
-  id           String         @id @default(cuid())
-  athleteId    String
-  athlete      AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  type         String
-  url          String
-  thumbnailUrl String?
-  title        String?
-  duration     Int?
-  viewCount    Int            @default(0)
-  isPublic     Boolean        @default(true)
-  isFeatured   Boolean        @default(false)
-  sortOrder    Int            @default(0)
-  createdAt    DateTime       @default(now())
-}
-
-model CoachProfile {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  school     String
-  division   String?
-  conference String?
-  isVerified Boolean  @default(false)
-  verifiedAt DateTime?
-  rosterSize Int?
-  openSpots  Int?
-  watchlist  Watchlist[]
-  threads    MessageThread[] @relation("coachThread")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-model MessageThread {
-  id            String         @id @default(cuid())
-  athleteId     String
-  athlete       AthleteProfile @relation("athleteThread", fields: [athleteId], references: [id])
-  coachId       String
-  coach         CoachProfile   @relation("coachThread", fields: [coachId], references: [id])
-  messages      Message[]
-  lastMessageAt DateTime       @default(now())
-  createdAt     DateTime       @default(now())
-
-  @@unique([athleteId, coachId])
-}
-
-model Message {
-  id         String        @id @default(cuid())
-  threadId   String
-  thread     MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  senderId   String
-  sender     User          @relation("sender", fields: [senderId], references: [id])
-  senderRole Role
-  content    String        @db.Text
-  readAt     DateTime?
-  createdAt  DateTime      @default(now())
-}
-
-model Watchlist {
-  id        String         @id @default(cuid())
-  coachId   String
-  coach     CoachProfile   @relation(fields: [coachId], references: [id], onDelete: Cascade)
-  athleteId String
-  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  notes     String?        @db.Text
-  contacted Boolean        @default(false)
-  createdAt DateTime       @default(now())
-
-  @@unique([coachId, athleteId])
-}
-
-model ProfileView {
-  id         String         @id @default(cuid())
-  athleteId  String
-  athlete    AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  viewerId   String?
-  viewer     User?          @relation("viewer", fields: [viewerId], references: [id])
-  viewerType String?
-  createdAt  DateTime       @default(now())
-
-  @@index([athleteId, createdAt])
-}
-
-model Notification {
-  id          String           @id @default(cuid())
-  userId      String
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        NotificationType
-  title       String
-  description String?
-  read        Boolean          @default(false)
-  actionUrl   String?
-  createdAt   DateTime         @default(now())
-
-  @@index([userId, read])
-}
-
-model Report {
-  id          String       @id @default(cuid())
-  reporterId  String
-  reporter    User         @relation("reporter", fields: [reporterId], references: [id])
-  reportedId  String
-  type        ReportType
-  description String       @db.Text
-  status      ReportStatus @default(PENDING)
-  resolvedAt  DateTime?
-  resolvedBy  String?
-  createdAt   DateTime     @default(now())
-}
-
-model FamilyAccess {
-  id          String         @id @default(cuid())
-  athleteId   String
-  athlete     AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  parentId    String
-  parent      User           @relation("parent", fields: [parentId], references: [id])
-  permissions String[]
-  inviteCode  String?        @unique
-  status      String         @default("active")
-  createdAt   DateTime       @default(now())
-}
-
-model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String             @unique
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  stripeCustomerId     String?            @unique
-  stripeSubscriptionId String?            @unique
-  status               SubscriptionStatus @default(TRIALING)
-  currentPeriodEnd     DateTime?
-  trialEndsAt          DateTime?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-}
-
-model AuditLog {
-  id         String   @id @default(cuid())
-  adminId    String
-  admin      User     @relation(fields: [adminId], references: [id])
-  action     String
-  targetType String?
-  targetId   String?
-  details    String?  @db.Text
-  ipAddress  String?
-  createdAt  DateTime @default(now())
 }

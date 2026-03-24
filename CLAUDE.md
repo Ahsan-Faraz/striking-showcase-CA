@@ -190,16 +190,13 @@ recruiting_board
   status (tracking|contacted|visited|offered|committed|passed),
   notes, added_at, updated_at
 
-coach_team
-  id, coach_id (FK — primary), member_id (FK — auth.users),
-  role (head|assistant|volunteer), added_at
 ```
 
 ### Prisma Models (existing codebase)
 ```
 User, AthleteProfile, CoachProfile, MessageThread, Message,
 Watchlist, Tournament, BallArsenal, Media, Subscription,
-Notification, Report, AuditLog
+Notification, Report, AuditLog, CollegeTarget
 ```
 
 ### AthleteProfile Fields (Prisma)
@@ -250,11 +247,6 @@ family_access (FamilyAccess):             ✅ RLS ENABLED
 recruiting_board (Watchlist):             ✅ RLS ENABLED
   Coach → read/write own rows ONLY
   Athletes → CANNOT READ THIS TABLE (enforce strictly)
-  Admin → read all
-
-coach_team:                               ⏳ PENDING (no dedicated table yet)
-  Primary coach → manage
-  Team members → read
   Admin → read all
 
 subscriptions (Subscription):             ✅ RLS ENABLED
@@ -385,9 +377,10 @@ USBC ID linked:                    10%
 
 ### Current Implementation Status
 ```
-/dashboard             → KPI cards + completion banner. Hardcoded/demo data. Backend pending.
-/dashboard/profile     → Multi-tab editor: personal, bowling, academics, preferences, articles.
-                         Loads/saves via /api/athletes/me. AI bio via /api/ai/bio. LIVE.
+/dashboard             → KPI cards + completion banner. Real data from DAL. Server Component. LIVE.
+/dashboard/profile     → Multi-tab editor: personal, bowling, academics, bio, privacy.
+                         Server Actions per tab with Zod validation. ProfileEditor client component.
+                         AI bio via /api/ai/bio. Photo upload via /api/media/upload. LIVE.
 /dashboard/media       → Lists/uploads via /api/media/upload. Functional when Supabase env configured.
 /dashboard/tournaments → CRUD via /api/tournaments. Largely functional.
 /dashboard/arsenal     → CRUD via /api/arsenal. Largely functional.
@@ -592,6 +585,7 @@ GET    /api/admin/audit-log                        → Admin required.
 ```
 POST   /api/auth/register                 → Live
 POST   /api/auth/login                    → Live
+POST   /api/auth/sync                     → ✅ NEW — Prisma sync for Supabase users
 GET|PUT /api/athletes/me                  → Live ⚠️ DEMO FALLBACK — remove in prod
 GET    /api/athletes                      → Live
 GET|POST|PUT|DELETE /api/tournaments      → Live
@@ -612,26 +606,42 @@ POST   /api/stripe/webhook                → Live (env-dependent)
 ```
 src/
 ├── app/
-│   ├── (auth)/                               → Auth routes
+│   ├── (auth)/                               → Auth routes (Supabase Auth)
+│   │   ├── layout.tsx                        → Shared auth shell
+│   │   ├── login/page.tsx                    → ✅ Supabase email/password + Google OAuth
+│   │   └── register/page.tsx                 → ✅ Supabase signUp + role selection + Zod validation
 │   ├── (dashboard)/
-│   │   ├── layout.tsx                        → Shared dashboard shell
+│   │   ├── layout.tsx                        → Shared dashboard shell (server-side role)
 │   │   ├── dashboard/page.tsx                → Athlete overview (MOCK DATA)
 │   │   ├── profile/page.tsx                  → Profile editor (LIVE)
 │   │   ├── media/page.tsx                    → Media library (env-dependent)
 │   │   ├── tournaments/page.tsx              → Tournament CRUD (LIVE)
 │   │   ├── arsenal/page.tsx                  → Arsenal CRUD (LIVE)
-│   │   ├── messages/page.tsx                 → ⚠️ LIVE but placeholder currentUserId
+│   │   ├── messages/page.tsx                 → ✅ Uses real session userId
 │   │   ├── discover/page.tsx                 → Athlete discovery (LIVE)
 │   │   ├── coach-dashboard/page.tsx          → Coach dashboard (hybrid)
-│   │   ├── admin/page.tsx                    → ⚠️ MOCK DATA ONLY — tabs: overview/users/reports
+│   │   ├── admin/page.tsx                    → ⚠️ MOCK DATA ONLY
 │   │   └── settings/page.tsx                 → Partial
-│   ├── athlete/[username]/page.tsx           → Public athlete profile
+│   ├── [slug]/page.tsx                       → ✅ Public profile (SSR, SEO, zero editor UI)
+│   ├── athlete/[username]/page.tsx           → ✅ Public athlete profile (Server Component)
 │   ├── athlete/preview/page.tsx              → Preview route
+│   ├── auth/callback/route.ts                → ✅ OAuth callback handler (Supabase code exchange)
 │   ├── coach/[username]/page.tsx             → Public coach profile
-│   └── api/                                  → All API routes
-├── components/layout/Sidebar.tsx             → ⚠️ Role from URL (WRONG — must fix)
-├── lib/auth.ts                               → JWT resolver
-└── prisma/schema.prisma                      → Data models
+│   ├── api/
+│   │   ├── auth/sync/route.ts                → ✅ Prisma record sync for Supabase users
+│   │   └── ...                               → All other API routes
+│   └── api/og/image/route.tsx                → ✅ Dynamic OG image
+├── components/layout/Sidebar.tsx             → ✅ Role from server-side prop
+├── lib/
+│   ├── auth.ts                               → JWT resolver (migration fallback)
+│   ├── dal.ts                                → ✅ Supabase-first + JWT fallback + lazy sync
+│   ├── prisma.ts                             → Prisma client
+│   ├── supabase/client.ts                    → ✅ Browser Supabase client
+│   ├── supabase/server.ts                    → ✅ Server Supabase client
+│   ├── validations/auth.ts                   → ✅ Zod schemas for login/register
+│   └── validations/onboarding.ts             → ✅ Zod schemas for onboarding steps
+├── middleware.ts                              → ✅ Role-based routing + Supabase session refresh
+└── prisma/schema.prisma                      → ✅ Updated with all missing tables + columns
 ```
 
 ---
@@ -668,16 +678,23 @@ src/
 8.  ✅ FIXED — Hydration error on /athlete/preview resolved
     CSS moved from inline <style> to static file with CSS custom properties.
     File: src/app/athlete/preview/preview.css
-9.  Coach dashboard has hardcoded/placeholder metric values
-10. Settings notification toggles not persisted (UI-only)
-11. Family invitation flow is UI-only — no backend
-12. Parent role in Prisma schema has no end-to-end flow
+9.  ✅ FIXED — Role-based routing & onboarding flow implemented
+    Middleware: cross-role redirects, /onboarding protected.
+    Dashboard layout: ATHLETE guard. Portal layout: COACH guard.
+    OAuth callback: role-based redirect. 6-step onboarding wizard.
+    Landing page: converted to Server Component with generateMetadata().
+10. ✅ FIXED — Coach dashboard has hardcoded/placeholder metric values
+    Dashboard now fetches real data via DAL (getQuickStats, getProfileCompletion, etc.)
+    File: src/app/(dashboard)/dashboard/page.tsx
+11. Settings notification toggles not persisted (UI-only)
+12. Family invitation flow is UI-only — no backend
+13. Parent role in Prisma schema has no end-to-end flow
 ```
 
 ### LOW
 ```
-13. Some env examples have stale references not matching implementation
-14. Profile completion % uses hardcoded data — needs real backend calculation
+14. Some env examples have stale references not matching implementation
+15. Profile completion % uses hardcoded data — needs real backend calculation
 ```
 
 ---
@@ -700,7 +717,7 @@ src/
 1. Review existing codebase — what to keep vs rebuild
 2. Check Prisma schema vs spec schema — identify gaps
 3. Decide migration strategy
-4. Note: Prisma schema missing coach_team and profile_views tables
+4. Note: CoachTeam feature removed from requirements
 ```
 
 ---
@@ -745,16 +762,53 @@ ADMIN_SUBDOMAIN=admin.strikingshowcase.com
 *(Update this section at the end of every session)*
 
 ```
-Current Sprint:  Sprint 1 — Week 1
-Last worked on:  Fixed all critical + high bugs. Built public profile
-                 /[slug] with full SSR, SEO, generateMetadata(),
-                 Schema.org JSON-LD, 8 sections, zero editor UI.
-                 Fixed hydration error on /athlete/preview.
-                 Set up Supabase RLS on all athlete + coach tables.
-Next task:       Sprint 1 Prompt 2 — Schema migration + Auth setup
+Current Sprint:  Sprint 2 — Week 3–4
+Last worked on:  Sprint 2 Prompt 1 — Public Profile SSR + Dashboard + Profile Editor
+                 PART 1: Public Profile /[slug] — full SSR with SEO:
+                   - Complete rewrite as pure Server Component (zero 'use client')
+                   - getPublicProfile() DAL function: fetches by slug, explicit field select
+                   - generateMetadata(): title, description, OG image, canonical URL, Twitter card
+                   - Schema.org Person JSON-LD for Google rich results
+                   - All 8 sections: Hero, Bowling Stats, Highlight Reel, Photo Gallery,
+                     Ball Arsenal, Tournament Results, College Targets, Bio
+                   - OG image route updated from ?id= to ?slug= param
+                   - Fire-and-forget profile view tracking
+                   Files: src/app/[slug]/page.tsx, src/app/api/og/image/route.tsx
+                 PART 2: Athlete Dashboard /dashboard — real data:
+                   - Converted from 'use client' + hardcoded demo data → async Server Component
+                   - DAL functions: getProfileCompletion, getRecentProfileViews,
+                     getQuickStats, getRecentInquiries (all in src/lib/dal.ts)
+                   - Profile completion uses exact spec formula (8 criteria, 100% total)
+                   - Promise.all() for parallel data fetches
+                   - KPI cards: 7d views, watchlist count, unread messages, total inquiries
+                   - Quick stats: season avg, high game, high series from real DB
+                   - Recent inquiries panel replaces old hardcoded activity feed
+                   - Profile completion banner with next-action suggestion from DAL
+                   File: src/app/(dashboard)/dashboard/page.tsx
+                 PART 3: Profile Editor /dashboard/profile — Server Actions + Zod:
+                   - page.tsx: thin Server Component that loads profile via verifySession()
+                   - ProfileEditor.tsx: 'use client' component with 5 tabs, useTransition
+                   - 5 tabs: Personal Info, Bowling Stats, Academics, Bio, Privacy
+                   - Zod schemas per tab (src/lib/validations/profile.ts)
+                   - Server Actions per tab (src/app/(dashboard)/profile/actions.ts):
+                     savePersonalInfo, saveBowlingStats, saveAcademicInfo, saveBio, savePrivacy
+                   - Each action: verifySession → Zod validate → prisma update → revalidatePath
+                   - Bio tab: 500 char limit + AI bio generation via /api/ai/bio
+                   - Privacy tab: visibility toggle, actively recruiting, divisions, regions
+                   - Photo upload preserved via /api/media/upload
+                   Files: src/app/(dashboard)/profile/page.tsx,
+                          src/app/(dashboard)/profile/ProfileEditor.tsx,
+                          src/app/(dashboard)/profile/actions.ts,
+                          src/lib/validations/profile.ts
+                 tsc --noEmit: ✅ zero errors
+Next task:       Sprint 2 Prompt 2 (Media Manager, Stats Editor, or Theme Studio)
 Blockers:        None currently
-Decisions made:  CSS for preview page moved to static file.
-                 RLS enforced — athletes have zero access to recruiting_board.
+Decisions made:  BowlingStyle enum has ONE_HANDED/TWO_HANDED (not STROKER etc).
+                 ProfileVisibility enum has PUBLIC/PRIVATE (no COACHES_ONLY).
+                 Profile editor uses Server Actions per tab, not single PUT.
+                 Dashboard is async Server Component, not client-side fetch.
+                 Public profile uses slug-based lookup exclusively.
+                 OG image route uses ?slug= query param.
 ```
 
 ---
