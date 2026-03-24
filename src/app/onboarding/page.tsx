@@ -442,11 +442,8 @@ export default function OnboardingPage() {
                   onChange={(e) => setBowlingStats({ ...bowlingStats, style: e.target.value as BowlingStatsData['style'] || undefined })}
                 >
                   <option value="">Select style</option>
-                  <option value="STROKER">Stroker</option>
-                  <option value="CRANKER">Cranker</option>
-                  <option value="TWEENER">Tweener</option>
-                  <option value="POWER_STROKER">Power Stroker</option>
-                  <option value="HELICOPTER">Helicopter</option>
+                  <option value="ONE_HANDED">One-Handed</option>
+                  <option value="TWO_HANDED">Two-Handed</option>
                 </select>
               </div>
             </div>

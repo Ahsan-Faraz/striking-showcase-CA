@@ -368,6 +368,12 @@
     color: var(--text-tertiary);
   }
 
+  /* Force native dropdown options to be readable on all OS/browsers */
+  select.input option {
+    color: #000;
+    background: #fff;
+  }
+
   /* Stat Block */
   .stat-block {
     @apply flex flex-col items-center gap-1 p-4;

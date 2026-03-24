@@ -1,26 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js';
 import prisma from '@/lib/prisma';
-import { hashPassword, signToken } from '@/lib/auth';
+import { registerSchema } from '@/lib/validations/auth';
 
 export const dynamic = 'force-dynamic';
 
-const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['ATHLETE', 'COACH']),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  classYear: z.number().int().min(2024).max(2035).optional(),
-  school: z.string().optional(),
-});
-
+/**
+ * POST /api/auth/register
+ * Creates a Supabase Auth user (auto-confirmed, no email verification),
+ * then creates matching Prisma User + role profile in a transaction.
+ * Returns needsOnboarding flag for client-side redirect.
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validated = registerSchema.parse(body);
 
-    // Check if email already exists
+    // Check if email already exists in Prisma
     const existingUser = await prisma.user.findUnique({
       where: { email: validated.email },
     });
@@ -32,15 +28,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash password
-    const passwordHash = await hashPassword(validated.password);
+    // Use Supabase Admin client (service role) to create user without email confirmation
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
 
-    // Create user with profile in a transaction
-    const user = await prisma.$transaction(async (tx) => {
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: validated.email,
+      password: validated.password,
+      email_confirm: true, // Auto-confirm — no email verification
+      user_metadata: {
+        role: validated.role,
+        first_name: validated.firstName,
+        last_name: validated.lastName,
+        class_year: validated.classYear,
+        school: validated.school,
+      },
+    });
+
+    if (authError) {
+      // Handle duplicate email in Supabase
+      if (authError.message?.includes('already been registered')) {
+        return NextResponse.json(
+          { error: 'An account with this email already exists' },
+          { status: 409 }
+        );
+      }
+      console.error('Supabase auth error:', authError);
+      return NextResponse.json(
+        { error: 'Failed to create account. Please try again.' },
+        { status: 500 }
+      );
+    }
+
+    const supabaseUserId = authData.user.id;
+
+    // Create Prisma User + role profile in a transaction
+    await prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
+          id: supabaseUserId,
           email: validated.email,
-          passwordHash,
           role: validated.role,
         },
       });
@@ -51,14 +81,13 @@ export async function POST(request: NextRequest) {
             userId: newUser.id,
             firstName: validated.firstName,
             lastName: validated.lastName,
-            classYear: validated.classYear || 2026,
+            classYear: validated.classYear || new Date().getFullYear() + 2,
           },
         });
 
         // Create trial subscription
         const trialEnd = new Date();
         trialEnd.setDate(trialEnd.getDate() + 30);
-
         await tx.subscription.create({
           data: {
             userId: newUser.id,
@@ -78,28 +107,24 @@ export async function POST(request: NextRequest) {
       return newUser;
     });
 
-    // Generate JWT
-    const token = signToken({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    const needsOnboarding = validated.role === 'ATHLETE';
 
     return NextResponse.json(
       {
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
+        data: {
+          userId: supabaseUserId,
+          email: validated.email,
+          role: validated.role,
+          needsOnboarding,
         },
       },
       { status: 201 }
     );
   } catch (error) {
-    if (error instanceof z.ZodError) {
+    if (error instanceof Error && error.name === 'ZodError') {
+      const zodError = error as import('zod').ZodError;
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: zodError.errors[0].message },
         { status: 400 }
       );
     }

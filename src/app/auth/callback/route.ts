@@ -62,7 +62,14 @@ export async function GET(request: Request) {
   });
 
   const metadata = user.user_metadata ?? {};
-  const role = (metadata.role as Role) || 'ATHLETE';
+  // Prefer role from query param (set during Google OAuth from register page),
+  // then fall back to user_metadata, then default to ATHLETE
+  const roleParam = searchParams.get('role');
+  const role = (
+    roleParam === 'COACH' || roleParam === 'ATHLETE'
+      ? roleParam
+      : (metadata.role as Role) || 'ATHLETE'
+  );
   let isNew = false;
 
   if (!existing) {

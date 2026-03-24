@@ -20,7 +20,7 @@ export const bowlingStatsSchema = z.object({
   highGame: z.coerce.number().int().min(0).max(300).optional().or(z.literal('')),
   highSeries: z.coerce.number().int().min(0).max(900).optional().or(z.literal('')),
   dominantHand: z.enum(['RIGHT', 'LEFT']).optional(),
-  style: z.enum(['STROKER', 'CRANKER', 'TWEENER', 'POWER_STROKER', 'HELICOPTER']).optional(),
+  style: z.enum(['ONE_HANDED', 'TWO_HANDED']).optional(),
   revRate: z.coerce.number().int().min(0).max(700).optional().or(z.literal('')),
   ballSpeed: z.coerce.number().min(0).max(30).optional().or(z.literal('')),
 });
