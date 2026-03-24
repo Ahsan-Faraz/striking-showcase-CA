@@ -1,36 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { verifySessionFromRequest } from "@/lib/dal";
+import { v2 as cloudinary } from "cloudinary";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 async function getAthleteProfile(request: NextRequest) {
-  let user = null;
-  try { user = await getCurrentUser(request); } catch {}
-
-  if (user) {
-    return prisma.athleteProfile.findUnique({ where: { userId: user.id } });
-  }
-  return prisma.athleteProfile.findFirst({ orderBy: { createdAt: 'asc' } });
+  const user = await verifySessionFromRequest(request);
+  if (!user) return null;
+  return prisma.athleteProfile.findUnique({ where: { userId: user.id } });
 }
 
 export async function GET(request: NextRequest) {
   try {
     const profile = await getAthleteProfile(request);
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     const media = await prisma.media.findMany({
       where: { athleteId: profile.id },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json({ media });
-  } catch (error: any) {
-    console.error('Get media error:', error);
-    return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -38,71 +41,93 @@ export async function POST(request: NextRequest) {
   try {
     const profile = await getAthleteProfile(request);
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const type = (formData.get('type') as string) || 'image';
-    const title = (formData.get('title') as string) || null;
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
+    if (
+      !process.env.CLOUDINARY_CLOUD_NAME ||
+      !process.env.CLOUDINARY_API_KEY ||
+      !process.env.CLOUDINARY_API_SECRET
+    ) {
       return NextResponse.json(
-        { error: `Storage not configured. SUPABASE_URL: ${supabaseUrl ? 'set' : 'missing'}, SERVICE_KEY: ${supabaseServiceKey ? 'set' : 'missing'}` },
-        { status: 503 }
+        { error: "Cloudinary not configured" },
+        { status: 503 },
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const formData = await request.formData();
+    const file = formData.get("file") as File | null;
+    const type = (formData.get("type") as string) || "image";
+    const title = (formData.get("title") as string) || null;
 
-    // Generate unique filename
-    const ext = file.name.split('.').pop() || (type === 'video' ? 'mp4' : 'jpg');
-    const filename = `${profile.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-    // Upload to Supabase Storage
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('media')
-      .upload(filename, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('Supabase upload failed:', uploadError);
-      return NextResponse.json({ error: `Upload failed: ${uploadError.message}` }, { status: 500 });
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('media')
-      .getPublicUrl(filename);
+    // Convert file to base64 data URI for Cloudinary upload
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString("base64");
+    const mimeType =
+      file.type || (type === "video" ? "video/mp4" : "image/jpeg");
+    const dataUri = `data:${mimeType};base64,${base64}`;
 
-    const publicUrl = urlData.publicUrl;
+    const resourceType =
+      type === "video" ? ("video" as const) : ("image" as const);
 
-    // Save to database
+    const uploadResult = await cloudinary.uploader.upload(dataUri, {
+      folder: `striking-showcase/${profile.id}`,
+      resource_type: resourceType,
+      transformation:
+        resourceType === "image"
+          ? [
+              {
+                width: 2000,
+                crop: "limit",
+                quality: "auto",
+                fetch_format: "auto",
+              },
+            ]
+          : undefined,
+    });
+
+    // Build thumbnail URL
+    let thumbnailUrl: string | null = null;
+    if (resourceType === "image") {
+      thumbnailUrl = cloudinary.url(uploadResult.public_id, {
+        width: 400,
+        height: 300,
+        crop: "fill",
+        quality: "auto",
+        fetch_format: "auto",
+      });
+    } else if (resourceType === "video") {
+      thumbnailUrl = cloudinary.url(uploadResult.public_id, {
+        resource_type: "video",
+        width: 400,
+        height: 300,
+        crop: "fill",
+        format: "jpg",
+      });
+    }
+
     const media = await prisma.media.create({
       data: {
         athleteId: profile.id,
         type,
-        url: publicUrl,
-        thumbnailUrl: null,
+        url: uploadResult.secure_url,
+        thumbnailUrl,
         title,
+        duration: uploadResult.duration
+          ? Math.round(uploadResult.duration)
+          : null,
       },
     });
 
     return NextResponse.json(media, { status: 201 });
-  } catch (error: any) {
-    console.error('Upload error:', error);
-    return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

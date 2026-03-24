@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { ThreadList } from '@/components/messages/ThreadList';
-import { Conversation } from '@/components/messages/Conversation';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { ThreadList } from "@/components/messages/ThreadList";
+import { Conversation } from "@/components/messages/Conversation";
 
 interface Thread {
   id: string;
@@ -36,82 +36,177 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const threadPollRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Fetch user ID once on mount
   useEffect(() => {
-    // Fetch real user ID from auth — no hardcoded placeholder
-    fetch('/api/athletes/me')
+    fetch("/api/athletes/me")
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => setCurrentUserId(data.athlete?.userId ?? null))
       .catch(() => setCurrentUserId(null));
-    fetchThreads();
   }, []);
+
+  // Fetch threads and start thread polling
+  useEffect(() => {
+    fetchThreads();
+    threadPollRef.current = setInterval(fetchThreads, 8000);
+    return () => {
+      if (threadPollRef.current) clearInterval(threadPollRef.current);
+    };
+  }, []);
+
+  // Auto-poll messages for active thread
+  useEffect(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    if (activeThreadId) {
+      pollRef.current = setInterval(
+        () => fetchMessages(activeThreadId, true),
+        4000,
+      );
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [activeThreadId]);
 
   const fetchThreads = async () => {
     try {
-      const res = await fetch('/api/messages');
+      const res = await fetch("/api/messages");
       if (res.ok) {
         const data = await res.json();
         setThreads(data.threads || []);
       }
     } catch {
-      // Empty state
+      // Silently handle
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchMessages = useCallback(async (threadId: string) => {
-    try {
-      const res = await fetch(`/api/messages/${threadId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data.messages || []);
+  const fetchMessages = useCallback(
+    async (threadId: string, silent = false) => {
+      try {
+        const res = await fetch(`/api/messages/${threadId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setMessages((prev) => {
+            const newMsgs = data.messages || [];
+            // Only update if messages actually changed (avoid re-render flicker)
+            if (
+              prev.length === newMsgs.length &&
+              prev[prev.length - 1]?.id === newMsgs[newMsgs.length - 1]?.id
+            ) {
+              return prev;
+            }
+            return newMsgs;
+          });
+        }
+      } catch {
+        if (!silent) setMessages([]);
       }
-    } catch {
-      setMessages([]);
-    }
-  }, []);
+    },
+    [],
+  );
 
   const handleSelectThread = (threadId: string) => {
     setActiveThreadId(threadId);
     fetchMessages(threadId);
+    // Clear unread count optimistically
+    setThreads((prev) =>
+      prev.map((t) => (t.id === threadId ? { ...t, unreadCount: 0 } : t)),
+    );
   };
 
   const handleSendMessage = async (content: string) => {
-    if (!activeThreadId) return;
+    if (!activeThreadId || !currentUserId) return;
+
+    // Optimistic update — show message immediately
+    const optimisticId = `opt-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: optimisticId,
+      content,
+      senderId: currentUserId,
+      senderRole: "ATHLETE",
+      createdAt: new Date().toISOString(),
+      readAt: null,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+
+    // Update thread list optimistically
+    setThreads((prev) =>
+      prev.map((t) =>
+        t.id === activeThreadId
+          ? {
+              ...t,
+              lastMessageAt: new Date().toISOString(),
+              lastMessage: { content, senderId: currentUserId, readAt: null },
+            }
+          : t,
+      ),
+    );
+
     setSending(true);
     try {
       const res = await fetch(`/api/messages/${activeThreadId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
       });
       if (res.ok) {
         const msg = await res.json();
-        setMessages((prev) => [...prev, msg]);
+        // Replace optimistic with real
+        setMessages((prev) =>
+          prev.map((m) => (m.id === optimisticId ? msg : m)),
+        );
+      } else {
+        // Revert optimistic on error
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
       }
-    } catch (err) {
-      console.error('Send failed:', err);
+    } catch {
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
     } finally {
       setSending(false);
     }
   };
 
   const activeThread = threads.find((t) => t.id === activeThreadId);
+  const filteredThreads = searchQuery
+    ? threads.filter((t) =>
+        t.otherParty.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : threads;
+  const totalUnread = threads.reduce((sum, t) => sum + t.unreadCount, 0);
 
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-6 animate-in">
         <p className="section-label mb-1">Communication</p>
-        <h1 className="font-heading text-4xl font-bold">Messages</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="font-heading text-4xl font-bold">Messages</h1>
+          {totalUnread > 0 && (
+            <span className="px-2.5 py-0.5 rounded-full bg-[var(--accent-primary)] text-white text-xs font-bold">
+              {totalUnread}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="glass-card overflow-hidden border-t-2 border-t-gold/30" style={{ height: 'calc(100vh - 220px)' }}>
+      <div
+        className="glass-card overflow-hidden border-t-2 border-t-gold/30"
+        style={{ height: "calc(100vh - 220px)" }}
+      >
         <div className="flex h-full">
           {/* Thread List */}
           <div className="w-80 border-r border-[var(--border-primary)] overflow-y-auto bg-[var(--bg-secondary)]/30">
             <div className="p-3 border-b border-[var(--border-primary)]">
-              <input className="input" placeholder="Search conversations..." />
+              <input
+                className="input"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
             {loading ? (
               <div className="flex items-center justify-center py-12">
@@ -119,9 +214,9 @@ export default function MessagesPage() {
               </div>
             ) : (
               <ThreadList
-                threads={threads}
+                threads={filteredThreads}
                 activeThreadId={activeThreadId || undefined}
-                currentUserId={currentUserId || ''}
+                currentUserId={currentUserId || ""}
                 onSelectThread={handleSelectThread}
               />
             )}
@@ -132,7 +227,7 @@ export default function MessagesPage() {
             {activeThreadId && activeThread ? (
               <Conversation
                 messages={messages}
-                currentUserId={currentUserId || ''}
+                currentUserId={currentUserId || ""}
                 threadId={activeThreadId}
                 otherPartyName={activeThread.otherParty.name}
                 onSendMessage={handleSendMessage}
@@ -141,13 +236,26 @@ export default function MessagesPage() {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center px-8">
                 <div className="w-20 h-20 rounded-2xl bg-maroon/10 border border-maroon/20 flex items-center justify-center mb-5">
-                  <svg className="w-10 h-10 text-gold/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                  <svg
+                    className="w-10 h-10 text-gold/60"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"
+                    />
                   </svg>
                 </div>
-                <h3 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-2">Your Messages</h3>
+                <h3 className="font-heading text-2xl font-bold text-[var(--text-primary)] mb-2">
+                  Your Messages
+                </h3>
                 <p className="text-sm text-[var(--text-tertiary)] max-w-sm">
-                  Select a conversation to view messages, or wait for a coach to reach out to you.
+                  Select a conversation to view messages, or wait for a coach to
+                  reach out to you.
                 </p>
               </div>
             )}

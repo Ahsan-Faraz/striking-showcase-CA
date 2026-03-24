@@ -2,13 +2,13 @@
  * Data Access Layer — ALL DB access goes through here.
  * Verifies session before every query. No demo fallbacks.
  */
-import 'server-only';
-import { cache } from 'react';
-import { NextRequest } from 'next/server';
-import prisma from './prisma';
-import { createSupabaseServerClient } from './supabase/server';
-import { verifyToken, type JWTPayload } from './auth';
-import type { Role } from '@prisma/client';
+import "server-only";
+import { cache } from "react";
+import { NextRequest } from "next/server";
+import prisma from "./prisma";
+import { createSupabaseServerClient } from "./supabase/server";
+import { verifyToken, type JWTPayload } from "./auth";
+import type { Role } from "@prisma/client";
 
 const USER_INCLUDES = {
   athleteProfile: true,
@@ -16,13 +16,19 @@ const USER_INCLUDES = {
   subscription: true,
 } as const;
 
-export type SessionUser = NonNullable<Awaited<ReturnType<typeof _verifySession>>>;
+export type SessionUser = NonNullable<
+  Awaited<ReturnType<typeof _verifySession>>
+>;
 
 /**
  * Look up Prisma User by Supabase user ID or email.
  * If no record exists, lazily create one from user_metadata.
  */
-async function findOrCreatePrismaUser(supabaseUser: { id: string; email?: string; user_metadata?: Record<string, unknown> }) {
+async function findOrCreatePrismaUser(supabaseUser: {
+  id: string;
+  email?: string;
+  user_metadata?: Record<string, unknown>;
+}) {
   // 1. Try by Supabase UUID
   let dbUser = await prisma.user.findUnique({
     where: { id: supabaseUser.id },
@@ -41,9 +47,11 @@ async function findOrCreatePrismaUser(supabaseUser: { id: string; email?: string
 
   // 3. Lazy sync — create Prisma record from Supabase user_metadata
   const metadata = supabaseUser.user_metadata ?? {};
-  const role: Role = (['ATHLETE', 'COACH', 'ADMIN', 'PARENT'] as const).includes(metadata.role as Role)
+  const role: Role = (
+    ["ATHLETE", "COACH", "ADMIN", "PARENT"] as const
+  ).includes(metadata.role as Role)
     ? (metadata.role as Role)
-    : 'ATHLETE';
+    : "ATHLETE";
 
   try {
     dbUser = await prisma.user.create({
@@ -52,11 +60,11 @@ async function findOrCreatePrismaUser(supabaseUser: { id: string; email?: string
         email: supabaseUser.email!,
         role,
         athleteProfile:
-          role === 'ATHLETE'
+          role === "ATHLETE"
             ? {
                 create: {
-                  firstName: (metadata.first_name as string) || '',
-                  lastName: (metadata.last_name as string) || '',
+                  firstName: (metadata.first_name as string) || "",
+                  lastName: (metadata.last_name as string) || "",
                   classYear: metadata.class_year
                     ? parseInt(String(metadata.class_year), 10)
                     : new Date().getFullYear() + 2,
@@ -64,10 +72,10 @@ async function findOrCreatePrismaUser(supabaseUser: { id: string; email?: string
               }
             : undefined,
         coachProfile:
-          role === 'COACH'
+          role === "COACH"
             ? {
                 create: {
-                  school: (metadata.school as string) || 'Unknown',
+                  school: (metadata.school as string) || "Unknown",
                 },
               }
             : undefined,
@@ -94,7 +102,10 @@ async function _verifySession() {
   // 1. Try Supabase Auth
   try {
     const supabase = createSupabaseServerClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
     if (user && !error) {
       return findOrCreatePrismaUser(user);
     }
@@ -104,9 +115,9 @@ async function _verifySession() {
 
   // 2. Fallback: existing JWT cookie (migration period)
   try {
-    const { cookies } = await import('next/headers');
+    const { cookies } = await import("next/headers");
     const cookieStore = cookies();
-    const token = cookieStore.get('token')?.value;
+    const token = cookieStore.get("token")?.value;
     if (!token) return null;
 
     const payload = verifyToken(token);
@@ -132,7 +143,10 @@ export async function verifySessionFromRequest(request: NextRequest) {
   // 1. Try Supabase Auth
   try {
     const supabase = createSupabaseServerClient();
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
     if (user && !error) {
       return findOrCreatePrismaUser(user);
     }
@@ -142,12 +156,12 @@ export async function verifySessionFromRequest(request: NextRequest) {
 
   // 2. Fallback: JWT from Authorization header or cookie
   let token: string | undefined;
-  const authHeader = request.headers.get('authorization');
-  if (authHeader?.startsWith('Bearer ')) {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
     token = authHeader.substring(7);
   }
   if (!token) {
-    token = request.cookies.get('token')?.value;
+    token = request.cookies.get("token")?.value;
   }
   if (!token) return null;
 
@@ -181,6 +195,9 @@ export async function getPublicProfile(slug: string) {
       isActivelyRecruiting: true,
       divisionInterest: true,
       preferredDivisions: true,
+      themeJson: true,
+      colorScheme: true,
+      portfolioLayout: true,
       seasonAverage: true,
       highGame: true,
       highSeries: true,
@@ -199,33 +216,66 @@ export async function getPublicProfile(slug: string) {
       intendedMajor: true,
       usbcId: true,
       tournaments: {
-        orderBy: { date: 'desc' },
+        orderBy: { date: "desc" },
         take: 20,
-        select: { id: true, name: true, date: true, place: true, average: true, format: true },
+        select: {
+          id: true,
+          name: true,
+          date: true,
+          place: true,
+          average: true,
+          format: true,
+        },
       },
       arsenal: {
-        orderBy: { sortOrder: 'asc' },
-        select: { id: true, name: true, brand: true, weight: true, coverstock: true, layout: true, core: true, surface: true },
+        orderBy: { sortOrder: "asc" },
+        select: {
+          id: true,
+          name: true,
+          brand: true,
+          weight: true,
+          coverstock: true,
+          layout: true,
+          core: true,
+          surface: true,
+        },
       },
       media: {
         where: { isPublic: true },
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { sortOrder: "asc" },
         take: 20,
-        select: { id: true, type: true, url: true, thumbnailUrl: true, title: true, duration: true, isFeatured: true, sortOrder: true },
+        select: {
+          id: true,
+          type: true,
+          url: true,
+          thumbnailUrl: true,
+          title: true,
+          duration: true,
+          isFeatured: true,
+          sortOrder: true,
+        },
       },
       collegeTargets: {
-        select: { id: true, schoolName: true, division: true, conference: true, status: true },
+        select: {
+          id: true,
+          schoolName: true,
+          division: true,
+          conference: true,
+          status: true,
+        },
       },
     },
   });
-  if (!profile || profile.profileVisibility !== 'PUBLIC') return null;
+  if (!profile || profile.profileVisibility !== "PUBLIC") return null;
   return profile;
 }
 
 // ─── DASHBOARD STATS ───────────────────────────────────────
 
 /** Profile completion % using the exact formula from spec. */
-export async function getProfileCompletion(userId: string): Promise<{ percentage: number; nextAction: string }> {
+export async function getProfileCompletion(
+  userId: string,
+): Promise<{ percentage: number; nextAction: string }> {
   const profile = await prisma.athleteProfile.findUnique({
     where: { userId },
     select: {
@@ -242,7 +292,7 @@ export async function getProfileCompletion(userId: string): Promise<{ percentage
       usbcId: true,
       _count: {
         select: {
-          media: { where: { type: 'video', isFeatured: true } },
+          media: { where: { type: "video", isFeatured: true } },
           arsenal: true,
           tournaments: true,
           collegeTargets: true,
@@ -250,42 +300,93 @@ export async function getProfileCompletion(userId: string): Promise<{ percentage
       },
     },
   });
-  if (!profile) return { percentage: 0, nextAction: 'Complete your profile to get started' };
+  if (!profile)
+    return {
+      percentage: 0,
+      nextAction: "Complete your profile to get started",
+    };
 
   let pct = 0;
   const missing: string[] = [];
 
   // Photo uploaded: 15%
-  if (profile.profilePhotoUrl) { pct += 15; } else { missing.push('Upload a profile photo (+15%)'); }
+  if (profile.profilePhotoUrl) {
+    pct += 15;
+  } else {
+    missing.push("Upload a profile photo (+15%)");
+  }
 
   // Bio written (min 50 chars): 10%
-  if (profile.bio && profile.bio.length >= 50) { pct += 10; } else { missing.push('Write a bio of at least 50 characters (+10%)'); }
+  if (profile.bio && profile.bio.length >= 50) {
+    pct += 10;
+  } else {
+    missing.push("Write a bio of at least 50 characters (+10%)");
+  }
 
   // All bowling stats filled: 20%
-  const statsArray = [profile.seasonAverage, profile.highGame, profile.highSeries, profile.revRate, profile.ballSpeed];
+  const statsArray = [
+    profile.seasonAverage,
+    profile.highGame,
+    profile.highSeries,
+    profile.revRate,
+    profile.ballSpeed,
+  ];
   const statsFilled = statsArray.filter((s) => s != null).length;
-  if (statsFilled === statsArray.length) { pct += 20; } else { missing.push(`Fill all 5 bowling stat fields (+20%)`); }
+  if (statsFilled === statsArray.length) {
+    pct += 20;
+  } else {
+    missing.push(`Fill all 5 bowling stat fields (+20%)`);
+  }
 
   // At least 1 highlight video: 15%
-  if (profile._count.media > 0) { pct += 15; } else { missing.push('Add a highlight video (+15%)'); }
+  if (profile._count.media > 0) {
+    pct += 15;
+  } else {
+    missing.push("Add a highlight video (+15%)");
+  }
 
   // At least 3 ball arsenal entries: 10%
-  if (profile._count.arsenal >= 3) { pct += 10; } else { missing.push(`Add ${3 - profile._count.arsenal} more ball arsenal entries (+10%)`); }
+  if (profile._count.arsenal >= 3) {
+    pct += 10;
+  } else {
+    missing.push(
+      `Add ${3 - profile._count.arsenal} more ball arsenal entries (+10%)`,
+    );
+  }
 
   // At least 3 tournament results: 10%
-  if (profile._count.tournaments >= 3) { pct += 10; } else { missing.push(`Add ${3 - profile._count.tournaments} more tournament results (+10%)`); }
+  if (profile._count.tournaments >= 3) {
+    pct += 10;
+  } else {
+    missing.push(
+      `Add ${3 - profile._count.tournaments} more tournament results (+10%)`,
+    );
+  }
 
   // At least 1 college target: 10%
-  if (profile._count.collegeTargets > 0) { pct += 10; } else { missing.push('Add at least 1 college target (+10%)'); }
+  if (profile._count.collegeTargets > 0) {
+    pct += 10;
+  } else {
+    missing.push("Add at least 1 college target (+10%)");
+  }
 
   // USBC ID linked: 10%
-  if (profile.usbcId) { pct += 10; } else { missing.push('Link your USBC ID (+10%)'); }
+  if (profile.usbcId) {
+    pct += 10;
+  } else {
+    missing.push("Link your USBC ID (+10%)");
+  }
 
-  return { percentage: pct, nextAction: missing[0] ?? 'Your profile is 100% complete!' };
+  return {
+    percentage: pct,
+    nextAction: missing[0] ?? "Your profile is 100% complete!",
+  };
 }
 
 /** Recent profile views in the last 7 days. */
-export async function getRecentProfileViews(profileId: string): Promise<number> {
+export async function getRecentProfileViews(
+  profileId: string,
+): Promise<number> {
   const since = new Date();
   since.setDate(since.getDate() - 7);
   return prisma.profileView.count({
@@ -297,20 +398,30 @@ export async function getRecentProfileViews(profileId: string): Promise<number> 
 export async function getRecentInquiries(athleteId: string) {
   return prisma.messageThread.findMany({
     where: { athleteId },
-    orderBy: { lastMessageAt: 'desc' },
+    orderBy: { lastMessageAt: "desc" },
     take: 5,
     select: {
       id: true,
       lastMessageAt: true,
       coach: { select: { school: true } },
-      messages: { orderBy: { createdAt: 'desc' }, take: 1, select: { content: true, createdAt: true } },
+      messages: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { content: true, createdAt: true },
+      },
     },
   });
 }
 
 /** Quick stats for the dashboard. */
 export async function getQuickStats(profileId: string, userId: string) {
-  const [totalViews, totalInquiries, completion, watchlistCount, unreadMessages] = await Promise.all([
+  const [
+    totalViews,
+    totalInquiries,
+    completion,
+    watchlistCount,
+    unreadMessages,
+  ] = await Promise.all([
     prisma.profileView.count({ where: { athleteId: profileId } }),
     prisma.messageThread.count({ where: { athleteId: profileId } }),
     getProfileCompletion(userId),
@@ -323,7 +434,13 @@ export async function getQuickStats(profileId: string, userId: string) {
       },
     }),
   ]);
-  return { totalViews, totalInquiries, profileCompletion: completion.percentage, watchlistCount, unreadMessages };
+  return {
+    totalViews,
+    totalInquiries,
+    profileCompletion: completion.percentage,
+    watchlistCount,
+    unreadMessages,
+  };
 }
 
 /** Require specific role — returns false if role doesn't match. */
