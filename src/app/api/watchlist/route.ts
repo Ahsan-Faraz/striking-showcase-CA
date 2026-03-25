@@ -8,6 +8,13 @@ export const dynamic = 'force-dynamic';
 const addSchema = z.object({
   athleteId: z.string().min(1),
   notes: z.string().optional(),
+  status: z.enum(['TRACKING', 'CONTACTED', 'VISITED', 'OFFERED', 'COMMITTED', 'PASSED']).optional(),
+});
+
+const updateSchema = z.object({
+  athleteId: z.string().min(1),
+  status: z.enum(['TRACKING', 'CONTACTED', 'VISITED', 'OFFERED', 'COMMITTED', 'PASSED']),
+  notes: z.string().optional(),
 });
 
 async function getVerifiedCoachProfile(request: NextRequest) {
@@ -90,6 +97,7 @@ export async function POST(request: NextRequest) {
         coachId: coach.id,
         athleteId: validated.athleteId,
         notes: validated.notes || null,
+        status: validated.status || 'TRACKING',
       },
     });
 
@@ -147,6 +155,48 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Remove from watchlist error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const result = await getVerifiedCoachProfile(request);
+    if ('error' in result) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    const { coach } = result;
+
+    const body = await request.json();
+    const validated = updateSchema.parse(body);
+
+    const existing = await prisma.watchlist.findUnique({
+      where: {
+        coachId_athleteId: {
+          coachId: coach.id,
+          athleteId: validated.athleteId,
+        },
+      },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Not on board' }, { status: 404 });
+    }
+
+    const updated = await prisma.watchlist.update({
+      where: { id: existing.id },
+      data: {
+        status: validated.status,
+        ...(validated.notes !== undefined ? { notes: validated.notes } : {}),
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+    }
+    console.error('Update watchlist error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

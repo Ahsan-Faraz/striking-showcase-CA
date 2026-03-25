@@ -8,7 +8,7 @@ import { NextRequest } from "next/server";
 import prisma from "./prisma";
 import { createSupabaseServerClient } from "./supabase/server";
 import { verifyToken, type JWTPayload } from "./auth";
-import type { Role } from "@prisma/client";
+import type { Role, Prisma } from "@prisma/client";
 
 const USER_INCLUDES = {
   athleteProfile: true,
@@ -446,4 +446,272 @@ export async function getQuickStats(profileId: string, userId: string) {
 /** Require specific role — returns false if role doesn't match. */
 export function requireRole(user: SessionUser, role: Role): boolean {
   return user.role === role;
+}
+
+// ─── COACH DASHBOARD ───────────────────────────────────────
+
+/** Coach portal KPI data: board summary, messages, recent activity. */
+export async function getCoachDashboardData(coachProfileId: string, userId: string) {
+  const [
+    boardCounts,
+    unreadMessages,
+    totalThreads,
+    recentActivity,
+  ] = await Promise.all([
+    // Board column counts
+    prisma.watchlist.groupBy({
+      by: ['status'],
+      where: { coachId: coachProfileId },
+      _count: true,
+    }),
+    // Unread messages
+    prisma.message.count({
+      where: {
+        thread: { coachId: coachProfileId },
+        readAt: null,
+        NOT: { senderId: userId },
+      },
+    }),
+    // Total active threads
+    prisma.messageThread.count({
+      where: { coachId: coachProfileId },
+    }),
+    // Recent board activity (last 5 changes)
+    prisma.watchlist.findMany({
+      where: { coachId: coachProfileId },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+      select: {
+        status: true,
+        updatedAt: true,
+        athlete: {
+          select: { firstName: true, lastName: true },
+        },
+      },
+    }),
+  ]);
+
+  // Map board counts to column totals
+  const columns = {
+    TRACKING: 0,
+    CONTACTED: 0,
+    VISITED: 0,
+    OFFERED: 0,
+    COMMITTED: 0,
+    PASSED: 0,
+  };
+  for (const row of boardCounts) {
+    if (row.status in columns) {
+      columns[row.status as keyof typeof columns] = row._count;
+    }
+  }
+
+  return {
+    boardColumns: columns,
+    totalOnBoard: Object.values(columns).reduce((a, b) => a + b, 0),
+    unreadMessages,
+    totalThreads,
+    recentActivity: recentActivity.map((w) => ({
+      athleteName: `${w.athlete.firstName} ${w.athlete.lastName}`,
+      status: w.status,
+      date: w.updatedAt,
+    })),
+  };
+}
+
+// ─── ATHLETE SEARCH (Coach Portal) ────────────────────────
+
+export interface SearchFilters {
+  classYear?: string;       // comma-separated: "2025,2026"
+  state?: string;           // e.g. "Kansas"
+  division?: string;        // comma-separated: "D1,D2"
+  avgMin?: string;
+  avgMax?: string;
+  revRate?: string;         // "low" | "medium" | "high" | "elite"
+  handed?: string;          // "LEFT" | "RIGHT"
+  gender?: string;
+  gpaMin?: string;
+  gpaMax?: string;
+  hasVideo?: string;        // "true"
+  hasUsbc?: string;         // "true"
+  lastActive?: string;      // "30" | "60" | "90" days
+  sort?: string;            // "average" | "revRate" | "gradYear" | "lastActive" | "gpa"
+  order?: string;           // "asc" | "desc"
+  page?: string;
+  limit?: string;
+}
+
+const REV_RATE_RANGES: Record<string, { gte?: number; lte?: number }> = {
+  low: { lte: 249 },
+  medium: { gte: 250, lte: 349 },
+  high: { gte: 350, lte: 449 },
+  elite: { gte: 450 },
+};
+
+const SORT_MAP: Record<string, string> = {
+  average: "seasonAverage",
+  revRate: "revRate",
+  gradYear: "classYear",
+  lastActive: "updatedAt",
+  gpa: "gpa",
+};
+
+/** Search athletes with full filter set. Returns paginated results + board status for the coach. */
+export async function searchAthletes(
+  filters: SearchFilters,
+  coachProfileId?: string,
+) {
+  const where: Prisma.AthleteProfileWhereInput = {
+    profileVisibility: "PUBLIC",
+  };
+
+  // Graduation year (multi-select)
+  if (filters.classYear) {
+    const years = filters.classYear.split(",").map((y) => parseInt(y.trim(), 10)).filter(Boolean);
+    if (years.length > 0) where.classYear = { in: years };
+  }
+
+  // State
+  if (filters.state) {
+    where.state = { contains: filters.state, mode: "insensitive" };
+  }
+
+  // Division interest (multi-select on preferredDivisions array)
+  if (filters.division) {
+    const divs = filters.division.split(",").map((d) => d.trim()).filter(Boolean);
+    if (divs.length > 0) where.preferredDivisions = { hasSome: divs };
+  }
+
+  // Bowling average range
+  if (filters.avgMin || filters.avgMax) {
+    const avgFilter: Prisma.FloatNullableFilter = {};
+    if (filters.avgMin) avgFilter.gte = parseFloat(filters.avgMin);
+    if (filters.avgMax) avgFilter.lte = parseFloat(filters.avgMax);
+    where.seasonAverage = avgFilter;
+  }
+
+  // Rev rate categorical
+  if (filters.revRate && REV_RATE_RANGES[filters.revRate]) {
+    const range = REV_RATE_RANGES[filters.revRate];
+    const revFilter: Prisma.IntNullableFilter = {};
+    if (range.gte !== undefined) revFilter.gte = range.gte;
+    if (range.lte !== undefined) revFilter.lte = range.lte;
+    where.revRate = revFilter;
+  }
+
+  // Handed
+  if (filters.handed) {
+    where.dominantHand = filters.handed as "RIGHT" | "LEFT";
+  }
+
+  // Gender
+  if (filters.gender) {
+    where.gender = filters.gender;
+  }
+
+  // GPA range
+  if (filters.gpaMin || filters.gpaMax) {
+    const gpaFilter: Prisma.FloatNullableFilter = {};
+    if (filters.gpaMin) gpaFilter.gte = parseFloat(filters.gpaMin);
+    if (filters.gpaMax) gpaFilter.lte = parseFloat(filters.gpaMax);
+    where.gpa = gpaFilter;
+  }
+
+  // Has highlight video
+  if (filters.hasVideo === "true") {
+    where.media = { some: { type: "video" } };
+  }
+
+  // USBC verified
+  if (filters.hasUsbc === "true") {
+    where.usbcVerified = true;
+  }
+
+  // Last active (updatedAt within N days)
+  if (filters.lastActive) {
+    const days = parseInt(filters.lastActive, 10);
+    if (days > 0) {
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      where.updatedAt = { gte: since };
+    }
+  }
+
+  // Sorting
+  const sortField = SORT_MAP[filters.sort || "average"] || "seasonAverage";
+  const sortOrder = filters.order === "asc" ? "asc" : "desc";
+  const orderBy = { [sortField]: sortOrder };
+
+  // Pagination
+  const page = Math.max(1, parseInt(filters.page || "1", 10) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(filters.limit || "20", 10) || 20));
+
+  const [athletes, total] = await Promise.all([
+    prisma.athleteProfile.findMany({
+      where,
+      select: {
+        id: true,
+        slug: true,
+        firstName: true,
+        lastName: true,
+        classYear: true,
+        state: true,
+        school: true,
+        profilePhotoUrl: true,
+        seasonAverage: true,
+        highGame: true,
+        highSeries: true,
+        revRate: true,
+        dominantHand: true,
+        style: true,
+        gpa: true,
+        preferredDivisions: true,
+        isActivelyRecruiting: true,
+        usbcVerified: true,
+        updatedAt: true,
+        _count: { select: { media: { where: { type: "video" } } } },
+      },
+      orderBy,
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.athleteProfile.count({ where }),
+  ]);
+
+  // If coach, fetch their board statuses for the returned athletes
+  let boardStatusMap: Record<string, string> = {};
+  if (coachProfileId && athletes.length > 0) {
+    const athleteIds = athletes.map((a) => a.id);
+    const boardEntries = await prisma.watchlist.findMany({
+      where: { coachId: coachProfileId, athleteId: { in: athleteIds } },
+      select: { athleteId: true, status: true },
+    });
+    boardStatusMap = Object.fromEntries(
+      boardEntries.map((e) => [e.athleteId, e.status]),
+    );
+  }
+
+  return {
+    athletes: athletes.map((a) => ({
+      ...a,
+      hasVideo: a._count.media > 0,
+      boardStatus: boardStatusMap[a.id] || null,
+    })),
+    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  };
+}
+
+/** Get saved searches for a coach. */
+export async function getSavedSearches(coachProfileId: string) {
+  return prisma.savedSearch.findMany({
+    where: { coachId: coachProfileId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      filtersJson: true,
+      emailAlerts: true,
+      createdAt: true,
+    },
+  });
 }
