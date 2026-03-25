@@ -1,6 +1,9 @@
 # STRIKING SHOWCASE — COMPLETE PROJECT MEMORY
+
 # Auto-loaded by VS Code Copilot, Claude Code, and all AI tools every session.
+
 # Source: requirements.pdf + striking_showcase_role_spec.pdf + architecture diagram
+
 # Version 1.1 · March 2026 · Confidential
 
 ---
@@ -20,23 +23,24 @@ evaluated against the bowling recruiting use case specifically.
 
 ## 🏗️ TECH STACK (FINAL — DO NOT SUGGEST ALTERNATIVES)
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 14 App Router + React Server Components |
-| Styling | Tailwind CSS — mobile-first, utility-first |
-| Auth | Supabase Auth — JWT, Google OAuth, email/password |
+| Layer    | Technology                                        |
+| -------- | ------------------------------------------------- |
+| Frontend | Next.js 14 App Router + React Server Components   |
+| Styling  | Tailwind CSS — mobile-first, utility-first        |
+| Auth     | Supabase Auth — JWT, Google OAuth, email/password |
 | Database | PostgreSQL via Supabase — RLS policies + Realtime |
-| ORM | Prisma (existing codebase uses this) |
-| Media | Cloudinary — photos/videos, transformations, CDN |
-| Payments | Stripe — Free / Pro / Family subscription plans |
-| Email | Resend — transactional + broadcast |
-| Hosting | Vercel (frontend) + Supabase (backend) |
+| ORM      | Prisma (existing codebase uses this)              |
+| Media    | Cloudinary — photos/videos, transformations, CDN  |
+| Payments | Stripe — Free / Pro / Family subscription plans   |
+| Email    | GoHighLevel webhook — transactional + broadcast   |
+| Hosting  | Vercel (frontend) + Supabase (backend)            |
 
 ---
 
 ## 👥 THREE USER ROLES — ARCHITECTURALLY CRITICAL
 
 ### 1. ATHLETE
+
 - Builds and manages recruiting profile
 - Receives coach messages and replies (cannot initiate)
 - Manages media, stats, arsenal, tournaments, college targets
@@ -44,6 +48,7 @@ evaluated against the bowling recruiting use case specifically.
 - Cannot read the `recruiting_board` table — ever
 
 ### 2. COACH
+
 - Must be **verified by admin** before sending messages
 - Unverified coaches can browse profiles but CANNOT send messages
 - Discovers athletes via search/filter engine
@@ -53,6 +58,7 @@ evaluated against the bowling recruiting use case specifically.
 - Requires `.edu` email for verification submission
 
 ### 3. ADMIN
+
 - Lives on `admin.strikingshowcase.com` — separate subdomain
 - Requires Supabase Auth + **TOTP 2FA (mandatory, no bypass)**
 - **8-hour session timeout, no "remember me"**
@@ -73,6 +79,7 @@ evaluated against the bowling recruiting use case specifically.
 ## 🗺️ COMPLETE ROUTE ARCHITECTURE
 
 ### Public / Marketing Routes
+
 ```
 /                          → Landing page (no auth required)
 /pricing                   → Subscription plans
@@ -81,6 +88,7 @@ evaluated against the bowling recruiting use case specifically.
 ```
 
 ### Athlete Public + Dashboard Routes
+
 ```
 /[slug]                    → Public profile (SSR, SEO critical, ZERO editor UI)
 /dashboard                 → Overview: completion %, recent views, inquiries, quick stats
@@ -96,11 +104,13 @@ evaluated against the bowling recruiting use case specifically.
 ```
 
 ### Family Routes
+
 ```
 /family/[athlete-slug]     → Read-only view of full athlete profile + messages (family members only)
 ```
 
 ### Coach Routes
+
 ```
 /coaches                   → Public landing page
 /coaches/signup            → Coach registration form
@@ -115,6 +125,7 @@ evaluated against the bowling recruiting use case specifically.
 ```
 
 ### Admin Routes (admin.strikingshowcase.com — separate subdomain)
+
 ```
 /                          → KPI dashboard: total athletes, coaches, active subs, MRR,
                              new signups (7d/30d), recent activity feed
@@ -133,6 +144,7 @@ evaluated against the bowling recruiting use case specifically.
 ## 🗃️ COMPLETE DATABASE SCHEMA
 
 ### Supabase Tables (from spec)
+
 ```sql
 profiles
   id, user_id (FK → auth.users), slug (unique), display_name, bio,
@@ -193,6 +205,7 @@ recruiting_board
 ```
 
 ### Prisma Models (existing codebase)
+
 ```
 User, AthleteProfile, CoachProfile, MessageThread, Message,
 Watchlist, Tournament, BallArsenal, Media, Subscription,
@@ -200,6 +213,7 @@ Notification, Report, AuditLog, CollegeTarget
 ```
 
 ### AthleteProfile Fields (Prisma)
+
 ```
 Personal:     firstName, lastName, classYear, state, school, gender
 Bowling:      seasonAverage, highGame, highSeries, revRate, ballSpeed, dominantHand, style
@@ -275,13 +289,14 @@ ball_arsenal (BallArsenal):               ✅ RLS ENABLED
 
 ## 💳 SUBSCRIPTION PLANS + FEATURE GATING
 
-| Plan | Price | Features |
-|------|-------|----------|
-| Free | $0 | Basic profile, 1 highlight video, limited stats, NO coach messaging |
-| Pro | $15/mo | Full profile, unlimited media, all stats, coach messaging, analytics, theme studio |
-| Family | $25/mo | Pro features + family portal for up to 4 family members |
+| Plan   | Price  | Features                                                                           |
+| ------ | ------ | ---------------------------------------------------------------------------------- |
+| Free   | $0     | Basic profile, 1 highlight video, limited stats, NO coach messaging                |
+| Pro    | $15/mo | Full profile, unlimited media, all stats, coach messaging, analytics, theme studio |
+| Family | $25/mo | Pro features + family portal for up to 4 family members                            |
 
 ### Feature Gates (check server-side via subscriptions table — never trust client)
+
 ```
 analytics route      → Pro only
 theme studio route   → Pro only
@@ -315,6 +330,7 @@ USBC ID linked:                    10%
 ## 🖼️ PUBLIC PROFILE `/[slug]` — COMPLETE SPEC
 
 ### SEO Requirements (Critical — coaches Google athlete names)
+
 - Fully Server-Side Rendered
 - `generateMetadata()` must return:
   - `title`: `"[Name] — Bowling Recruit | Striking Showcase"`
@@ -324,6 +340,7 @@ USBC ID linked:                    10%
 - Schema.org `Person` JSON-LD markup for Google rich results
 
 ### Profile Sections (in order)
+
 ```
 1. Hero
    → Display name, location, grad year, school, division interest, profile photo
@@ -358,6 +375,7 @@ USBC ID linked:                    10%
 ```
 
 ### Strict Rules
+
 - ZERO editor UI on public profile — no edit buttons, color pickers, save states, dashboard nav
 - If logged-in athlete visits own public profile → they see exactly what a coach sees
 - "View as Coach" toggle in dashboard links to public URL — does NOT change dashboard view
@@ -367,6 +385,7 @@ USBC ID linked:                    10%
 ## 📱 ATHLETE DASHBOARD — COMPLETE SPEC
 
 ### Media Manager `/dashboard/media`
+
 - Cloudinary upload widget integrated directly (NOT a custom uploader)
 - Photo: JPG/PNG, max 10MB, auto-compressed to max 2000px wide
 - Video: YouTube or Vimeo URL ONLY — no direct video upload (bandwidth cost)
@@ -376,6 +395,7 @@ USBC ID linked:                    10%
 - Free plan: 3 photos + 1 video / Pro plan: unlimited
 
 ### Current Implementation Status
+
 ```
 /dashboard             → KPI cards + completion banner. Real data from DAL. Server Component. LIVE.
 /dashboard/profile     → Multi-tab editor: personal, bowling, academics, bio, privacy.
@@ -395,6 +415,7 @@ USBC ID linked:                    10%
 ## 🎨 PROFILE THEME STUDIO (Pro Only)
 
 ### Options
+
 ```
 Layouts (5):      Classic, Modern (two column hero), Minimal (text-forward), Bold (large stats), Media-first
 Colors:           10 preset color schemes + custom primary/accent color picker
@@ -403,6 +424,7 @@ Header Style (3): Solid color, Gradient, Photo banner (profile photo as backgrou
 ```
 
 ### Implementation
+
 ```json
 {
   "layout": "classic|modern|minimal|bold|media-first",
@@ -413,6 +435,7 @@ Header Style (3): Solid color, Gradient, Photo banner (profile photo as backgrou
   "headerStyle": "solid|gradient|photo-banner"
 }
 ```
+
 - Stored as JSON column on `profiles` table
 - Applied as CSS custom properties at root element level
 - **No inline styles** — all theming via CSS variables in `<style>` tag in page head
@@ -422,6 +445,7 @@ Header Style (3): Solid color, Gradient, Photo banner (profile photo as backgrou
 ## 👨‍👩‍👧 FAMILY ACCESS PORTAL — COMPLETE SPEC
 
 ### Permissions
+
 ```
 View full profile (incl. private notes + stats):      ✅ YES
 View coach messages (all threads, all messages):      ✅ YES
@@ -433,10 +457,11 @@ Invite other family members:                          ❌ NO — athlete only
 ```
 
 ### Invite Flow
+
 ```
 1. Athlete → /dashboard/family
 2. Enters: email + name + relationship (Parent/Guardian/Sibling/Other)
-3. Resend sends tokenized invite link (expires 7 days)
+3. GoHighLevel webhook sends tokenized invite link (expires 7 days)
 4. Family member clicks → creates account or logs into existing
 5. family_access row created with accepted_at timestamp
 6. Family member lands on /family/[athlete-slug] — read-only view
@@ -449,6 +474,7 @@ Invite other family members:                          ❌ NO — athlete only
 ## 💬 MESSAGING SYSTEM — COMPLETE SPEC
 
 ### Non-Negotiable Rules
+
 - Coaches initiate ONLY — athletes CANNOT create threads
 - One thread per coach/athlete pair — no duplicate threads ever
 - Messages are **immutable** — no edit, no delete, no exceptions
@@ -457,12 +483,13 @@ Invite other family members:                          ❌ NO — athlete only
 - Unverified coaches → browse only, CANNOT send messages
 
 ### Flow
+
 ```
 1. Coach views athlete public profile
 2. Clicks "Contact Athlete" (verified Pro coaches only)
 3. System creates message_thread (coach_id + athlete_id)
 4. Coach sends first message
-5. Athlete gets email via Resend: "Coach [Name] from [School] sent you a message"
+5. Athlete gets email via GoHighLevel webhook: "Coach [Name] from [School] sent you a message"
 6. Athlete (+ family with access) reads/replies in /dashboard/inquiries
 7. All subsequent messages in same thread — no new threads for same pair
 8. Daily email digest for athletes who haven't logged in
@@ -490,6 +517,7 @@ Last Active:         Updated in last 30/60/90 days
 ```
 
 ### Results Features
+
 - Card view + list view (compact table)
 - Sort: by average, rev rate, grad year, last active, recently added
 - Board status badge on cards for athletes already on board
@@ -500,9 +528,11 @@ Last Active:         Updated in last 30/60/90 days
 ## 📋 RECRUITING BOARD (KANBAN)
 
 ### Columns
+
 `Tracking → Contacted → Visited → Offered → Committed → Passed`
 
 ### Features
+
 - Drag-and-drop, Supabase Realtime syncs to all team members instantly
 - Athlete card: photo, name, avg, grad year, last message date, days since last activity
 - Click card → detail panel: full stats, notes, message thread, activity log
@@ -534,10 +564,12 @@ This is intentional — drives Pro upgrade.
 ## 🔐 AUTH ARCHITECTURE
 
 ### Current Implementation
+
 - JWT at login/register, stored in cookie named `token`
 - `getCurrentUser` resolves from `authorization` header OR cookie
 
 ### Target
+
 - DAL pattern (`lib/dal.ts`) — all DB queries here, session verified first
 - `supabase.auth.getUser()` server-side only — never trust client-passed user IDs
 - Middleware = UX redirects only, NOT a security boundary (CVE-2025-29927)
@@ -548,6 +580,7 @@ This is intentional — drives Pro upgrade.
 ## 📡 COMPLETE API CONTRACTS
 
 ### Athlete
+
 ```
 GET    /api/profile/[slug]              → Public. No auth. Server-side only.
 GET    /api/dashboard/profile           → Own profile. Auth required.
@@ -560,6 +593,7 @@ DELETE /api/dashboard/family/[id]       → Auth required.
 ```
 
 ### Coach
+
 ```
 POST   /api/coaches/signup              → Creates account + pending email.
 GET    /api/portal/search               → Auth + coach role required.
@@ -571,6 +605,7 @@ GET    /api/portal/messages             → Auth required.
 ```
 
 ### Admin
+
 ```
 GET    /api/admin/users                            → Admin role required.
 PUT    /api/admin/users/[id]/suspend               → Admin required.
@@ -582,6 +617,7 @@ GET    /api/admin/audit-log                        → Admin required.
 ```
 
 ### Existing Live (current codebase)
+
 ```
 POST   /api/auth/register                 → Live
 POST   /api/auth/login                    → Live
@@ -629,7 +665,7 @@ src/
 │   ├── coach/[username]/page.tsx             → Public coach profile
 │   ├── coaches/page.tsx                      → ✅ Coach landing page (SSR, SEO)
 │   ├── coaches/signup/page.tsx               → ✅ Coach signup form (.edu + Zod)
-│   ├── coaches/signup/actions.ts             → ✅ Server Action (Supabase admin + Prisma + Resend)
+│   ├── coaches/signup/actions.ts             → ✅ Server Action (Supabase admin + Prisma + GoHighLevel webhook)
 │   ├── coaches/verify/page.tsx               → ✅ Pending verification page
 │   ├── portal/layout.tsx                     → ✅ Coach portal layout (role guard)
 │   ├── portal/page.tsx                       → ✅ Coach dashboard (real KPIs from DAL)
@@ -668,6 +704,7 @@ src/
 ## 🚨 KNOWN GAPS — FIX IN THIS ORDER
 
 ### CRITICAL
+
 ```
 1. ✅ FIXED — /[slug] public profile now renders ZERO editor UI
    Pure Server Component, full SSR, Schema.org JSON-LD, generateMetadata().
@@ -677,6 +714,7 @@ src/
 ```
 
 ### HIGH
+
 ```
 4. ✅ FIXED — Demo fallback removed from /api/athletes/me (returns 401)
    Uses verifySessionFromRequest() from lib/dal.ts. No demo fallback.
@@ -694,6 +732,7 @@ src/
 ```
 
 ### MEDIUM
+
 ```
 8.  ✅ FIXED — Hydration error on /athlete/preview resolved
     CSS moved from inline <style> to static file with CSS custom properties.
@@ -712,6 +751,7 @@ src/
 ```
 
 ### LOW
+
 ```
 14. Some env examples have stale references not matching implementation
 15. Profile completion % uses hardcoded data — needs real backend calculation
@@ -721,18 +761,19 @@ src/
 
 ## 🏃 SPRINT PLAN
 
-| Sprint | Weeks | Deliverables |
-|--------|-------|-------------|
-| 1 | 1–2 | Codebase review, Supabase schema + RLS, auth, role-based routing, landing, onboarding |
-| 2 | 3–4 | Public profile (SSR + SEO), profile editor, Cloudinary media, bowling stats, ball arsenal |
-| 3 | 5–6 | Tournament results, college targets, theme studio (CSS vars), profile completion system |
-| 4 | 7–8 | Coach portal: signup, verification, athlete search with all filters |
-| 5 | 9–10 | Recruiting board (Kanban + Supabase Realtime), team collaboration |
-| 6 | 11–12 | Messaging system, family access portal, family invite flow |
-| 7 | 13–14 | Stripe (plans + webhooks), feature gating, analytics, admin portal (all 9 screens) |
-| 8 | 15–16 | QA, performance, SEO audit, security hardening, production deploy |
+| Sprint | Weeks | Deliverables                                                                              |
+| ------ | ----- | ----------------------------------------------------------------------------------------- |
+| 1      | 1–2   | Codebase review, Supabase schema + RLS, auth, role-based routing, landing, onboarding     |
+| 2      | 3–4   | Public profile (SSR + SEO), profile editor, Cloudinary media, bowling stats, ball arsenal |
+| 3      | 5–6   | Tournament results, college targets, theme studio (CSS vars), profile completion system   |
+| 4      | 7–8   | Coach portal: signup, verification, athlete search with all filters                       |
+| 5      | 9–10  | Recruiting board (Kanban + Supabase Realtime), team collaboration                         |
+| 6      | 11–12 | Messaging system, family access portal, family invite flow                                |
+| 7      | 13–14 | Stripe (plans + webhooks), feature gating, analytics, admin portal (all 9 screens)        |
+| 8      | 15–16 | QA, performance, SEO audit, security hardening, production deploy                         |
 
 ### Week 1 — Before Writing Any New Code
+
 ```
 1. Review existing codebase — what to keep vs rebuild
 2. Check Prisma schema vs spec schema — identify gaps
@@ -763,8 +804,9 @@ STRIPE_SECRET_KEY=                   # Server-side only
 STRIPE_WEBHOOK_SECRET=               # Server-side only
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=  # Safe to expose
 
-# Resend
-RESEND_API_KEY=                      # Server-side only
+# GoHighLevel
+GHL_WEBHOOK_URL=                     # Server-side only, optional override
+GHL_FROM_EMAIL=                      # Server-side only, optional sender address
 
 # Anthropic (AI bio generation)
 ANTHROPIC_API_KEY=                   # Server-side only
@@ -779,7 +821,7 @@ ADMIN_SUBDOMAIN=admin.strikingshowcase.com
 
 ## ⚙️ CURRENT SESSION PROGRESS
 
-*(Update this section at the end of every session)*
+_(Update this section at the end of every session)_
 
 ```
 Current Sprint:  Sprint 4 — Week 7–8
@@ -866,5 +908,6 @@ New env var:     ADMIN_SECRET — required for temp admin verification route
 ```
 
 ---
-*Source: requirements.pdf (v1.1) + striking_showcase_role_spec.pdf + architecture diagram*
-*Confidential — March 2026*
+
+_Source: requirements.pdf (v1.1) + striking_showcase_role_spec.pdf + architecture diagram_
+_Confidential — March 2026_

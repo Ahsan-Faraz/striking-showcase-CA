@@ -1,12 +1,83 @@
-import { Resend } from "resend";
-
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
-
-const FROM_EMAIL = "Striking Showcase <noreply@strikingshowcase.com>";
+const GHL_WEBHOOK_URL =
+  process.env.GHL_WEBHOOK_URL ||
+  "https://services.leadconnectorhq.com/hooks/TiIvB0jM6X8SSY9reRY3/webhook-trigger/997c406d-611c-4882-b796-1624a153ae2f";
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "https://strikingshowcase.com";
+const DEFAULT_FROM_NAME = "Striking Showcase";
+const DEFAULT_FROM_EMAIL =
+  process.env.GHL_FROM_EMAIL ?? "noreply@strikingshowcase.com";
+
+type SendEmailOptions = {
+  toEmail: string;
+  fromName?: string;
+  fromEmail?: string;
+  subject: string;
+  body: string;
+};
+
+export async function sendEmailViaGoHighLevel({
+  toEmail,
+  fromName,
+  fromEmail,
+  subject,
+  body,
+}: SendEmailOptions) {
+  const response = await fetch(GHL_WEBHOOK_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      toEmail,
+      fromName: fromName || DEFAULT_FROM_NAME,
+      fromEmail: fromEmail || DEFAULT_FROM_EMAIL,
+      subject,
+      body,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error(
+      "GoHighLevel webhook send failed with status:",
+      response.status,
+    );
+    return null;
+  }
+
+  return response.json().catch(() => ({ success: true }));
+}
+
+export async function sendCoachVerificationPendingEmail({
+  to,
+  firstName,
+}: {
+  to: string;
+  firstName: string;
+}) {
+  return sendEmailViaGoHighLevel({
+    toEmail: to,
+    fromName: DEFAULT_FROM_NAME,
+    fromEmail: DEFAULT_FROM_EMAIL,
+    subject: "Your Striking Showcase coach account is pending verification",
+    body: `
+      <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px; color: #1f2937;">
+        <h2 style="margin: 0 0 16px; color: #7c2d12;">Welcome, ${firstName}!</h2>
+        <p style="margin: 0 0 12px; line-height: 1.6;">
+          Thank you for creating a coach account on Striking Showcase.
+        </p>
+        <p style="margin: 0 0 12px; line-height: 1.6;">
+          Your account is currently under review. Our team verifies all coach accounts to protect athletes and their families.
+        </p>
+        <p style="margin: 0 0 12px; line-height: 1.6;">
+          You'll be notified within <strong>24–48 hours</strong> once your account is verified.
+        </p>
+        <p style="margin: 0; line-height: 1.6;">
+          In the meantime, you can browse athlete profiles and search the athlete database.
+        </p>
+      </div>
+    `,
+  });
+}
 
 export async function sendFamilyInviteEmail({
   to,
@@ -21,18 +92,14 @@ export async function sendFamilyInviteEmail({
   relationship: string;
   inviteCode: string;
 }) {
-  if (!resend) {
-    console.warn("RESEND_API_KEY not configured — skipping email send");
-    return null;
-  }
-
   const acceptUrl = `${APP_URL}/auth/callback?invite=${encodeURIComponent(inviteCode)}`;
 
-  const { data, error } = await resend.emails.send({
-    from: FROM_EMAIL,
-    to,
+  return sendEmailViaGoHighLevel({
+    toEmail: to,
+    fromName: athleteName,
+    fromEmail: DEFAULT_FROM_EMAIL,
     subject: `${athleteName} invited you to Striking Showcase`,
-    html: `
+    body: `
       <div style="font-family: 'Inter', Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #0d0d0d; color: #E8E6ED;">
         <div style="text-align: center; margin-bottom: 32px;">
           <h1 style="font-size: 24px; font-weight: 700; color: #C9A84C; margin: 0;">Striking Showcase</h1>
@@ -67,11 +134,4 @@ export async function sendFamilyInviteEmail({
       </div>
     `,
   });
-
-  if (error) {
-    console.error("Failed to send family invite email:", error);
-    return null;
-  }
-
-  return data;
 }
