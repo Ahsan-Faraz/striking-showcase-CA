@@ -627,8 +627,26 @@ src/
 │   ├── athlete/preview/page.tsx              → Preview route
 │   ├── auth/callback/route.ts                → ✅ OAuth callback handler (Supabase code exchange)
 │   ├── coach/[username]/page.tsx             → Public coach profile
+│   ├── coaches/page.tsx                      → ✅ Coach landing page (SSR, SEO)
+│   ├── coaches/signup/page.tsx               → ✅ Coach signup form (.edu + Zod)
+│   ├── coaches/signup/actions.ts             → ✅ Server Action (Supabase admin + Prisma + Resend)
+│   ├── coaches/verify/page.tsx               → ✅ Pending verification page
+│   ├── portal/layout.tsx                     → ✅ Coach portal layout (role guard)
+│   ├── portal/page.tsx                       → ✅ Coach dashboard (real KPIs from DAL)
+│   ├── portal/profile/page.tsx               → ✅ Coach profile editor (Server Action + Zod)
+│   ├── portal/profile/CoachProfileEditor.tsx → ✅ Client form component
+│   ├── portal/profile/actions.ts             → ✅ saveCoachProfile Server Action
+│   ├── portal/settings/page.tsx              → ✅ Notification prefs + account
+│   ├── portal/settings/CoachSettingsForm.tsx  → ✅ Client toggle form
+│   ├── portal/settings/actions.ts            → ✅ saveCoachSettings Server Action
+│   ├── portal/search/page.tsx                → ✅ Server Component (searchParams → DAL)
+│   ├── portal/search/SearchFilters.tsx       → ✅ 11-filter client component (URL-driven)
+│   ├── portal/search/SearchResults.tsx       → ✅ Card + List view components
+│   ├── portal/search/SearchResultsClient.tsx → ✅ Client orchestrator (board actions, pagination, saved)
 │   ├── api/
 │   │   ├── auth/sync/route.ts                → ✅ Prisma record sync for Supabase users
+│   │   ├── portal/saved-searches/route.ts    → ✅ CRUD for saved searches (GET/POST/DELETE)
+│   │   ├── admin/verify-coach/route.ts       → ✅ Temp admin verification (ADMIN_SECRET)
 │   │   └── ...                               → All other API routes
 │   └── api/og/image/route.tsx                → ✅ Dynamic OG image
 ├── components/layout/Sidebar.tsx             → ✅ Role from server-side prop
@@ -639,6 +657,7 @@ src/
 │   ├── supabase/client.ts                    → ✅ Browser Supabase client
 │   ├── supabase/server.ts                    → ✅ Server Supabase client
 │   ├── validations/auth.ts                   → ✅ Zod schemas for login/register
+│   ├── validations/coach.ts                  → ✅ Zod schemas for coach signup/profile/settings
 │   └── validations/onboarding.ts             → ✅ Zod schemas for onboarding steps
 ├── middleware.ts                              → ✅ Role-based routing + Supabase session refresh
 └── prisma/schema.prisma                      → ✅ Updated with all missing tables + columns
@@ -663,7 +682,8 @@ src/
    Uses verifySessionFromRequest() from lib/dal.ts. No demo fallback.
    File: src/app/api/athletes/me/route.ts
 5. ✅ FIXED — Demo fallback removed from /api/watchlist (strict COACH role check)
-   Session + requireRole('COACH') on all handlers (GET/POST/DELETE).
+   Session + requireRole('COACH') on all handlers (GET/POST/DELETE/PATCH).
+   POST now accepts optional status. PATCH updates board status.
    File: src/app/api/watchlist/route.ts
 6. ✅ FIXED — Sidebar role now from server-side Supabase session
    Layout passes role prop from verifySession(). No pathname detection.
@@ -762,53 +782,87 @@ ADMIN_SUBDOMAIN=admin.strikingshowcase.com
 *(Update this section at the end of every session)*
 
 ```
-Current Sprint:  Sprint 2 — Week 3–4
-Last worked on:  Sprint 2 Prompt 1 — Public Profile SSR + Dashboard + Profile Editor
-                 PART 1: Public Profile /[slug] — full SSR with SEO:
-                   - Complete rewrite as pure Server Component (zero 'use client')
-                   - getPublicProfile() DAL function: fetches by slug, explicit field select
-                   - generateMetadata(): title, description, OG image, canonical URL, Twitter card
-                   - Schema.org Person JSON-LD for Google rich results
-                   - All 8 sections: Hero, Bowling Stats, Highlight Reel, Photo Gallery,
-                     Ball Arsenal, Tournament Results, College Targets, Bio
-                   - OG image route updated from ?id= to ?slug= param
-                   - Fire-and-forget profile view tracking
-                   Files: src/app/[slug]/page.tsx, src/app/api/og/image/route.tsx
-                 PART 2: Athlete Dashboard /dashboard — real data:
-                   - Converted from 'use client' + hardcoded demo data → async Server Component
-                   - DAL functions: getProfileCompletion, getRecentProfileViews,
-                     getQuickStats, getRecentInquiries (all in src/lib/dal.ts)
-                   - Profile completion uses exact spec formula (8 criteria, 100% total)
-                   - Promise.all() for parallel data fetches
-                   - KPI cards: 7d views, watchlist count, unread messages, total inquiries
-                   - Quick stats: season avg, high game, high series from real DB
-                   - Recent inquiries panel replaces old hardcoded activity feed
-                   - Profile completion banner with next-action suggestion from DAL
-                   File: src/app/(dashboard)/dashboard/page.tsx
-                 PART 3: Profile Editor /dashboard/profile — Server Actions + Zod:
-                   - page.tsx: thin Server Component that loads profile via verifySession()
-                   - ProfileEditor.tsx: 'use client' component with 5 tabs, useTransition
-                   - 5 tabs: Personal Info, Bowling Stats, Academics, Bio, Privacy
-                   - Zod schemas per tab (src/lib/validations/profile.ts)
-                   - Server Actions per tab (src/app/(dashboard)/profile/actions.ts):
-                     savePersonalInfo, saveBowlingStats, saveAcademicInfo, saveBio, savePrivacy
-                   - Each action: verifySession → Zod validate → prisma update → revalidatePath
-                   - Bio tab: 500 char limit + AI bio generation via /api/ai/bio
-                   - Privacy tab: visibility toggle, actively recruiting, divisions, regions
-                   - Photo upload preserved via /api/media/upload
-                   Files: src/app/(dashboard)/profile/page.tsx,
-                          src/app/(dashboard)/profile/ProfileEditor.tsx,
-                          src/app/(dashboard)/profile/actions.ts,
-                          src/lib/validations/profile.ts
-                 tsc --noEmit: ✅ zero errors
-Next task:       Sprint 2 Prompt 2 (Media Manager, Stats Editor, or Theme Studio)
-Blockers:        None currently
-Decisions made:  BowlingStyle enum has ONE_HANDED/TWO_HANDED (not STROKER etc).
-                 ProfileVisibility enum has PUBLIC/PRIVATE (no COACHES_ONLY).
-                 Profile editor uses Server Actions per tab, not single PUT.
-                 Dashboard is async Server Component, not client-side fetch.
-                 Public profile uses slug-based lookup exclusively.
-                 OG image route uses ?slug= query param.
+Current Sprint:  Sprint 4 — Week 7–8
+Last worked on:  Sprint 4 Prompt 2 — Athlete Search Engine + Board Integration
+                 PART 1: Prisma Schema — SavedSearch model:
+                   - New model: SavedSearch { id, coachId, name, filtersJson (Json),
+                     emailAlerts (Boolean), createdAt, updatedAt }
+                   - CoachProfile gets savedSearches SavedSearch[] relation
+                   - @@index on coachId
+                   File: prisma/schema.prisma
+                 PART 2: DAL — searchAthletes + getSavedSearches:
+                   - searchAthletes(filters, coachProfileId): full 11-filter search
+                     Filters: classYear (multi), state, division (multi/hasSome),
+                     avgMin/avgMax, revRate (categorical: low/medium/high/elite),
+                     handed, gender, gpaMin/gpaMax, hasVideo (media relation),
+                     hasUsbc, lastActive (updatedAt days)
+                   - Sorting: average, revRate, gradYear, lastActive, gpa + asc/desc
+                   - Pagination: page + limit (capped at 50)
+                   - Board status map: fetches Watchlist statuses for returned athletes
+                   - getSavedSearches(coachProfileId): returns coach saved searches
+                   File: src/lib/dal.ts
+                 PART 3: SearchFilters.tsx — Client component:
+                   - 11 filters: classYear (chips), state (dropdown), division (chips),
+                     avgMin/avgMax (number), revRate (dropdown), handed (dropdown),
+                     gender (dropdown), gpaMin/gpaMax (number), lastActive (dropdown),
+                     hasVideo (checkbox), hasUsbc (checkbox)
+                   - URL-driven: reads/writes searchParams via router.push
+                   - Active filter count badge on toggle button
+                   - SearchControls: sort + order + card/list view toggle
+                   File: src/app/portal/search/SearchFilters.tsx
+                 PART 4: SearchResults.tsx — Card + List view:
+                   - SearchAthleteCard: enhanced card with board status badge,
+                     rev rate in stats strip, division badges, video badge,
+                     "Add to Board" dropdown (select), links to /[slug]
+                   - AthleteListRow: compact table row for list view
+                   - Board status change via dropdown on both views
+                   File: src/app/portal/search/SearchResults.tsx
+                 PART 5: SearchResultsClient.tsx — Client orchestrator:
+                   - Handles board actions (POST new, PATCH update)
+                   - Pagination navigation
+                   - Save search modal (name input → POST /api/portal/saved-searches)
+                   - Load saved search (applies filters to URL)
+                   - Delete saved search
+                   - Card/list view switching
+                   File: src/app/portal/search/SearchResultsClient.tsx
+                 PART 6: /portal/search page.tsx — Server Component:
+                   - verifySession → COACH role guard → coachProfile check
+                   - Reads all searchParams, builds SearchFilters object
+                   - Promise.all([searchAthletes, getSavedSearches])
+                   - Passes data to SearchResultsClient
+                   File: src/app/portal/search/page.tsx
+                 PART 7: Saved Searches API:
+                   - GET /api/portal/saved-searches → list coach's searches
+                   - POST /api/portal/saved-searches → create (max 20 limit)
+                   - DELETE /api/portal/saved-searches?id= → delete own search
+                   - All: session + COACH role + Zod validation
+                   File: src/app/api/portal/saved-searches/route.ts
+                 PART 8: Watchlist API enhancements:
+                   - POST now accepts optional `status` field (defaults to TRACKING)
+                   - New PATCH handler: update board status for existing entry
+                   - Zod schemas: addSchema + updateSchema
+                   File: src/app/api/watchlist/route.ts
+                 PART 9: Admin Verification Workaround:
+                   - POST /api/admin/verify-coach: verify coach by email
+                   - GET /api/admin/verify-coach: list all unverified coaches
+                   - Protected by x-admin-secret header (ADMIN_SECRET env var)
+                   - Temporary until admin panel is built
+                   File: src/app/api/admin/verify-coach/route.ts
+                 PART 10: Register redirect:
+                   - Coach role selection on /register now redirects to /coaches/signup
+                   File: src/app/(auth)/register/page.tsx
+                 tsc --noEmit: ✅ ZERO errors
+                 prisma generate: ✅ Success
+                 prisma db push: ⚠️ Requires DIRECT_URL env var (Supabase connection)
+Next task:       Sprint 5 — Recruiting Board (Kanban) or Messaging System
+Blockers:        prisma db push needs DIRECT_URL + DATABASE_URL configured
+Decisions made:  Search is URL-driven (searchParams) not client-state — enables deep linking + saved searches.
+                 Rev rate uses categorical buckets (low/medium/high/elite) not raw number ranges.
+                 Board actions from search results use existing watchlist API (POST + new PATCH).
+                 Admin verification workaround uses ADMIN_SECRET header (not session) — temporary.
+                 SavedSearch limited to 20 per coach.
+                 Existing AthleteCard.tsx left intact — new SearchAthleteCard used in portal/search.
+New env var:     ADMIN_SECRET — required for temp admin verification route
 ```
 
 ---

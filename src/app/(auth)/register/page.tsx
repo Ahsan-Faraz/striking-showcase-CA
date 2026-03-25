@@ -110,6 +110,11 @@ export default function RegisterPage() {
             <button
               key={r}
               onClick={() => {
+                if (r === 'COACH') {
+                  // Coaches use the dedicated signup flow with .edu validation + verification
+                  router.push('/coaches/signup');
+                  return;
+                }
                 setRole(r);
                 setStep('form');
               }}

@@ -25,7 +25,7 @@ export function Navbar() {
             <Link href="#pricing" className="text-sm text-[var(--text-secondary)] hover:text-[var(--gold)] transition-colors">
               Pricing
             </Link>
-            <Link href="#coaches" className="text-sm text-[var(--text-secondary)] hover:text-[var(--gold)] transition-colors">
+            <Link href="/coaches" className="text-sm text-[var(--text-secondary)] hover:text-[var(--gold)] transition-colors">
               For Coaches
             </Link>
             <Link href="/login">
@@ -60,7 +60,7 @@ export function Navbar() {
             <Link href="#pricing" className="text-sm text-[var(--text-secondary)] hover:text-[var(--gold)] py-2 transition-colors">
               Pricing
             </Link>
-            <Link href="#coaches" className="text-sm text-[var(--text-secondary)] hover:text-[var(--gold)] py-2 transition-colors">
+            <Link href="/coaches" className="text-sm text-[var(--text-secondary)] hover:text-[var(--gold)] py-2 transition-colors">
               For Coaches
             </Link>
             <div className="flex gap-3 pt-2">
