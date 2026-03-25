@@ -37,6 +37,27 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/** Extract YouTube or Vimeo ID from a URL (server-side validation). */
+function parseVideoUrl(
+  url: string,
+): { provider: "youtube" | "vimeo"; id: string; thumbnail: string } | null {
+  const ytMatch = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/,
+  );
+  if (ytMatch) {
+    return {
+      provider: "youtube",
+      id: ytMatch[1],
+      thumbnail: `https://img.youtube.com/vi/${ytMatch[1]}/hqdefault.jpg`,
+    };
+  }
+  const vmMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vmMatch) {
+    return { provider: "vimeo", id: vmMatch[1], thumbnail: "" };
+  }
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const profile = await getAthleteProfile(request);
@@ -44,6 +65,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
+    const formData = await request.formData();
+    const type = (formData.get("type") as string) || "image";
+    const title = (formData.get("title") as string) || null;
+    const videoUrl = formData.get("videoUrl") as string | null;
+
+    // ── YouTube / Vimeo URL (no Cloudinary needed) ──────────────────
+    if (videoUrl) {
+      const parsed = parseVideoUrl(videoUrl.trim());
+      if (!parsed) {
+        return NextResponse.json(
+          { error: "Invalid YouTube or Vimeo URL" },
+          { status: 400 },
+        );
+      }
+
+      const media = await prisma.media.create({
+        data: {
+          athleteId: profile.id,
+          type: "video",
+          url: videoUrl.trim(),
+          thumbnailUrl: parsed.thumbnail || null,
+          title: title || `${parsed.provider} video`,
+        },
+      });
+
+      return NextResponse.json(media, { status: 201 });
+    }
+
+    // ── File upload via Cloudinary ──────────────────────────────────
     if (
       !process.env.CLOUDINARY_CLOUD_NAME ||
       !process.env.CLOUDINARY_API_KEY ||
@@ -55,11 +105,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const type = (formData.get("type") as string) || "image";
-    const title = (formData.get("title") as string) || null;
-
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }

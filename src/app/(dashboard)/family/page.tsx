@@ -23,6 +23,7 @@ export default function FamilyPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [form, setForm] = useState({
     email: "",
     name: "",
@@ -62,6 +63,8 @@ export default function FamilyPage() {
         setMembers((prev) => [data, ...prev]);
         setForm({ email: "", name: "", relationship: "Parent" });
         setShowForm(false);
+        setSuccess(`Invitation email sent to ${form.email}`);
+        setTimeout(() => setSuccess(""), 5000);
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.error || "Failed to send invite");
@@ -113,6 +116,13 @@ export default function FamilyPage() {
           </Button>
         )}
       </div>
+
+      {/* Success Message */}
+      {success && (
+        <div className="p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-400 animate-in">
+          {success}
+        </div>
+      )}
 
       {/* Invite Form */}
       {showForm && (

@@ -104,10 +104,7 @@ export default function MediaPage() {
     setAddingVideo(true);
     try {
       const formData = new FormData();
-      // Create a minimal placeholder file for the API, but store the real URL
-      const blob = new Blob(["video-link"], { type: "text/plain" });
-      const file = new File([blob], "video-link.txt", { type: "text/plain" });
-      formData.append("file", file);
+      formData.append("videoUrl", videoUrl.trim());
       formData.append("type", "video");
       formData.append("title", videoTitle.trim() || `${parsed.provider} video`);
 
@@ -117,23 +114,7 @@ export default function MediaPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        // Patch the URL and thumbnail to the real video link
-        const patched = await fetch(`/api/media/${data.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: videoTitle.trim() || `${parsed.provider} video`,
-          }),
-        });
-        const updated = patched.ok ? await patched.json() : data;
-        setMedia((prev) => [
-          {
-            ...updated,
-            url: videoUrl.trim(),
-            thumbnailUrl: parsed.thumbnail || null,
-          },
-          ...prev.filter((m) => m.id !== data.id),
-        ]);
+        setMedia((prev) => [data, ...prev]);
         setVideoUrl("");
         setVideoTitle("");
         setShowVideoForm(false);

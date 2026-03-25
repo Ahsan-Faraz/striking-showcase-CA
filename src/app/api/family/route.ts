@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { verifySessionFromRequest } from "@/lib/dal";
+import { sendFamilyInviteEmail } from "@/lib/email";
 import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -107,6 +108,16 @@ export async function POST(request: NextRequest) {
         createdAt: true,
       },
     });
+
+    // Send invitation email (fire-and-forget — don't block the response)
+    const athleteName = `${profile.firstName} ${profile.lastName}`;
+    sendFamilyInviteEmail({
+      to: validated.email,
+      inviteeName: validated.name,
+      athleteName,
+      relationship: validated.relationship,
+      inviteCode,
+    }).catch((err) => console.error("Family invite email failed:", err));
 
     return NextResponse.json(member, { status: 201 });
   } catch (error) {

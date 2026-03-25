@@ -189,12 +189,18 @@ export async function getPublicProfile(slug: string) {
       state: true,
       school: true,
       gender: true,
+      coachName: true,
+      coachContact: true,
+      proShop: true,
+      bowlingCenter: true,
+      usbcClub: true,
       bio: true,
       profilePhotoUrl: true,
       profileVisibility: true,
       isActivelyRecruiting: true,
       divisionInterest: true,
       preferredDivisions: true,
+      preferredRegions: true,
       themeJson: true,
       colorScheme: true,
       portfolioLayout: true,
@@ -234,6 +240,7 @@ export async function getPublicProfile(slug: string) {
           name: true,
           brand: true,
           weight: true,
+          isPrimary: true,
           coverstock: true,
           layout: true,
           core: true,
@@ -275,7 +282,7 @@ export async function getPublicProfile(slug: string) {
 /** Profile completion % using the exact formula from spec. */
 export async function getProfileCompletion(
   userId: string,
-): Promise<{ percentage: number; nextAction: string }> {
+): Promise<{ percentage: number; nextAction: string; nextActionLink: string }> {
   const profile = await prisma.athleteProfile.findUnique({
     where: { userId },
     select: {
@@ -304,23 +311,27 @@ export async function getProfileCompletion(
     return {
       percentage: 0,
       nextAction: "Complete your profile to get started",
+      nextActionLink: "/profile",
     };
 
   let pct = 0;
-  const missing: string[] = [];
+  const missing: { text: string; link: string }[] = [];
 
   // Photo uploaded: 15%
   if (profile.profilePhotoUrl) {
     pct += 15;
   } else {
-    missing.push("Upload a profile photo (+15%)");
+    missing.push({ text: "Upload a profile photo (+15%)", link: "/profile" });
   }
 
   // Bio written (min 50 chars): 10%
   if (profile.bio && profile.bio.length >= 50) {
     pct += 10;
   } else {
-    missing.push("Write a bio of at least 50 characters (+10%)");
+    missing.push({
+      text: "Write a bio of at least 50 characters (+10%)",
+      link: "/profile",
+    });
   }
 
   // All bowling stats filled: 20%
@@ -335,51 +346,63 @@ export async function getProfileCompletion(
   if (statsFilled === statsArray.length) {
     pct += 20;
   } else {
-    missing.push(`Fill all 5 bowling stat fields (+20%)`);
+    missing.push({
+      text: "Fill all 5 bowling stat fields (+20%)",
+      link: "/profile",
+    });
   }
 
   // At least 1 highlight video: 15%
   if (profile._count.media > 0) {
     pct += 15;
   } else {
-    missing.push("Add a highlight video (+15%)");
+    missing.push({
+      text: "Add a highlight video and mark it featured (+15%)",
+      link: "/media",
+    });
   }
 
   // At least 3 ball arsenal entries: 10%
   if (profile._count.arsenal >= 3) {
     pct += 10;
   } else {
-    missing.push(
-      `Add ${3 - profile._count.arsenal} more ball arsenal entries (+10%)`,
-    );
+    missing.push({
+      text: `Add ${3 - profile._count.arsenal} more ball arsenal entries (+10%)`,
+      link: "/arsenal",
+    });
   }
 
   // At least 3 tournament results: 10%
   if (profile._count.tournaments >= 3) {
     pct += 10;
   } else {
-    missing.push(
-      `Add ${3 - profile._count.tournaments} more tournament results (+10%)`,
-    );
+    missing.push({
+      text: `Add ${3 - profile._count.tournaments} more tournament results (+10%)`,
+      link: "/tournaments",
+    });
   }
 
   // At least 1 college target: 10%
   if (profile._count.collegeTargets > 0) {
     pct += 10;
   } else {
-    missing.push("Add at least 1 college target (+10%)");
+    missing.push({
+      text: "Add at least 1 college target (+10%)",
+      link: "/targets",
+    });
   }
 
   // USBC ID linked: 10%
   if (profile.usbcId) {
     pct += 10;
   } else {
-    missing.push("Link your USBC ID (+10%)");
+    missing.push({ text: "Link your USBC ID (+10%)", link: "/profile" });
   }
 
   return {
     percentage: pct,
-    nextAction: missing[0] ?? "Your profile is 100% complete!",
+    nextAction: missing[0]?.text ?? "Your profile is 100% complete!",
+    nextActionLink: missing[0]?.link ?? "/dashboard",
   };
 }
 

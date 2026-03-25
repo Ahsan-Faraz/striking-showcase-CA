@@ -33,6 +33,9 @@ export async function PATCH(
       updateData.isFeatured = body.isFeatured;
     if (typeof body.sortOrder === "number")
       updateData.sortOrder = body.sortOrder;
+    if (typeof body.url === "string") updateData.url = body.url;
+    if (typeof body.thumbnailUrl === "string")
+      updateData.thumbnailUrl = body.thumbnailUrl;
 
     const updated = await prisma.media.update({
       where: { id: params.id },

@@ -1,44 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import prisma from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import prisma from "@/lib/prisma";
+import { verifySessionFromRequest } from "@/lib/dal";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 const arsenalSchema = z.object({
-  name: z.string().min(1, 'Ball name is required'),
+  name: z.string().min(1, "Ball name is required"),
   brand: z.string().nullable().optional(),
-  weight: z.number().int().min(6).max(16).default(15),
+  weight: z.coerce.number().int().min(6).max(16).default(15),
   condition: z.string().nullable().optional(),
   isPrimary: z.boolean().default(false),
 });
 
 async function getAthleteProfile(request: NextRequest) {
-  let user = null;
-  try { user = await getCurrentUser(request); } catch {}
-
-  if (user) {
-    return prisma.athleteProfile.findUnique({ where: { userId: user.id } });
-  }
-  return prisma.athleteProfile.findFirst({ orderBy: { createdAt: 'asc' } });
+  const user = await verifySessionFromRequest(request);
+  if (!user) return null;
+  return prisma.athleteProfile.findUnique({ where: { userId: user.id } });
 }
 
 export async function GET(request: NextRequest) {
   try {
     const profile = await getAthleteProfile(request);
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     const arsenal = await prisma.ballArsenal.findMany({
       where: { athleteId: profile.id },
-      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+      orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
     });
 
     return NextResponse.json({ arsenal });
   } catch (error: any) {
-    console.error('Get arsenal error:', error);
-    return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
+    console.error("Get arsenal error:", error);
+    return NextResponse.json(
+      { error: error?.message || "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -46,7 +45,7 @@ export async function POST(request: NextRequest) {
   try {
     const profile = await getAthleteProfile(request);
     if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -63,7 +62,7 @@ export async function POST(request: NextRequest) {
     // Get max sort order
     const maxSort = await prisma.ballArsenal.findFirst({
       where: { athleteId: profile.id },
-      orderBy: { sortOrder: 'desc' },
+      orderBy: { sortOrder: "desc" },
       select: { sortOrder: true },
     });
 
@@ -82,9 +81,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(ball, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 });
+      return NextResponse.json(
+        { error: error.errors[0].message },
+        { status: 400 },
+      );
     }
-    console.error('Create ball error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Create ball error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
