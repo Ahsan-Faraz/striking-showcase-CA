@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySessionFromRequest } from "@/lib/dal";
+import { hasProAccess } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ athlete });
+    return NextResponse.json({
+      athlete,
+      subscription: user.subscription ?? null,
+    });
   } catch (error) {
     console.error("Get current athlete error:", error);
     return NextResponse.json(
@@ -56,6 +60,16 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    const isThemeUpdate =
+      "themeJson" in body || "portfolioLayout" in body || "colorScheme" in body;
+
+    if (isThemeUpdate && !hasProAccess(user.subscription)) {
+      return NextResponse.json(
+        { error: "Theme Studio is available on the Pro plan only" },
+        { status: 403 },
+      );
+    }
 
     const allowedFields = [
       "firstName",

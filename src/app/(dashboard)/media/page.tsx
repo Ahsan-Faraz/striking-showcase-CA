@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +15,17 @@ interface MediaItem {
   viewCount: number;
   isFeatured: boolean;
   createdAt: string;
+}
+
+interface MediaLimits {
+  isPro: boolean;
+  plan: string;
+  photoCount: number;
+  videoCount: number;
+  maxPhotos: number | null;
+  maxVideos: number | null;
+  remainingPhotos: number | null;
+  remainingVideos: number | null;
 }
 
 // Extract YouTube/Vimeo video ID and build embed thumbnail
@@ -41,6 +53,7 @@ function parseVideoUrl(
 
 export default function MediaPage() {
   const [media, setMedia] = useState<MediaItem[]>([]);
+  const [limits, setLimits] = useState<MediaLimits | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [filter, setFilter] = useState<"all" | "video" | "image">("all");
@@ -50,6 +63,7 @@ export default function MediaPage() {
   const [videoTitle, setVideoTitle] = useState("");
   const [addingVideo, setAddingVideo] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchMedia = useCallback(async () => {
     try {
@@ -57,6 +71,7 @@ export default function MediaPage() {
       if (res.ok) {
         const data = await res.json();
         setMedia(data.media || []);
+        setLimits(data.limits || null);
       }
     } catch {
       // empty
@@ -72,6 +87,28 @@ export default function MediaPage() {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
+
+    if (!limits?.isPro && (limits.remainingPhotos ?? 0) <= 0) {
+      setErrorMessage(
+        "Free plan includes up to 3 photos. Upgrade to Pro for unlimited media.",
+      );
+      e.target.value = "";
+      return;
+    }
+
+    if (
+      !limits?.isPro &&
+      limits.remainingPhotos !== null &&
+      files.length > limits.remainingPhotos
+    ) {
+      setErrorMessage(
+        `You can upload ${limits.remainingPhotos} more photo${limits.remainingPhotos === 1 ? "" : "s"} on the Free plan.`,
+      );
+      e.target.value = "";
+      return;
+    }
+
+    setErrorMessage(null);
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
@@ -89,18 +126,33 @@ export default function MediaPage() {
         if (res.ok) {
           const data = await res.json();
           setMedia((prev) => [data, ...prev]);
+        } else {
+          const data = await res.json().catch(() => null);
+          setErrorMessage(data?.error || "Upload failed.");
+          break;
         }
       }
     } catch {
-      // silent
+      setErrorMessage("Upload failed.");
     } finally {
       setUploading(false);
+      e.target.value = "";
+      await fetchMedia();
     }
   };
 
   const handleAddVideo = async () => {
     const parsed = parseVideoUrl(videoUrl.trim());
     if (!parsed) return;
+
+    if (!limits?.isPro && (limits.remainingVideos ?? 0) <= 0) {
+      setErrorMessage(
+        "Free plan includes 1 video. Upgrade to Pro for unlimited media.",
+      );
+      return;
+    }
+
+    setErrorMessage(null);
     setAddingVideo(true);
     try {
       const formData = new FormData();
@@ -118,11 +170,15 @@ export default function MediaPage() {
         setVideoUrl("");
         setVideoTitle("");
         setShowVideoForm(false);
+      } else {
+        const data = await res.json().catch(() => null);
+        setErrorMessage(data?.error || "Unable to add video.");
       }
     } catch {
-      // silent
+      setErrorMessage("Unable to add video.");
     } finally {
       setAddingVideo(false);
+      await fetchMedia();
     }
   };
 
@@ -165,6 +221,10 @@ export default function MediaPage() {
   const selectedItem = media.find((m) => m.id === selected);
   const photoCount = media.filter((m) => m.type === "image").length;
   const videoCount = media.filter((m) => m.type === "video").length;
+  const photoLimitReached =
+    !limits?.isPro && (limits?.remainingPhotos ?? 0) <= 0;
+  const videoLimitReached =
+    !limits?.isPro && (limits?.remainingVideos ?? 0) <= 0;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -177,7 +237,14 @@ export default function MediaPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => setShowVideoForm(true)}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setErrorMessage(null);
+              setShowVideoForm(true);
+            }}
+            disabled={videoLimitReached}
+          >
             <svg
               className="w-4 h-4"
               fill="none"
@@ -193,15 +260,28 @@ export default function MediaPage() {
             </svg>
             Add Video URL
           </Button>
-          <label className="cursor-pointer">
+          <label
+            className={cn(
+              "cursor-pointer",
+              photoLimitReached && "cursor-not-allowed opacity-60",
+            )}
+          >
             <input
               type="file"
               accept="image/*"
               multiple
               onChange={handleUpload}
+              disabled={photoLimitReached}
               className="hidden"
             />
-            <span className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl bg-[var(--accent-bright)] text-white hover:opacity-90 transition-opacity cursor-pointer">
+            <span
+              className={cn(
+                "inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold rounded-xl text-white transition-opacity",
+                photoLimitReached
+                  ? "bg-[var(--text-tertiary)] cursor-not-allowed"
+                  : "bg-[var(--accent-bright)] hover:opacity-90 cursor-pointer",
+              )}
+            >
               {uploading ? (
                 <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
               ) : (
@@ -224,6 +304,39 @@ export default function MediaPage() {
           </label>
         </div>
       </div>
+
+      <Card className="animate-in-delay-1 border-t-2 border-t-gold/30">
+        <CardContent className="py-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-[var(--text-primary)]">
+              {limits?.isPro
+                ? "Pro plan: unlimited media uploads"
+                : "Free plan: 3 photos and 1 video"}
+            </p>
+            <p className="text-xs text-[var(--text-secondary)] mt-1">
+              {limits?.isPro
+                ? `${photoCount} photo${photoCount === 1 ? "" : "s"} and ${videoCount} video${videoCount === 1 ? "" : "s"} uploaded.`
+                : `${limits?.remainingPhotos ?? 0} photo${(limits?.remainingPhotos ?? 0) === 1 ? "" : "s"} left, ${limits?.remainingVideos ?? 0} video${(limits?.remainingVideos ?? 0) === 1 ? "" : "s"} left.`}
+            </p>
+          </div>
+          {!limits?.isPro && (
+            <Link
+              href="/settings?upgrade=media"
+              className="inline-flex items-center justify-center rounded-xl bg-maroon px-4 py-2 text-sm font-semibold text-white hover:bg-maroon-bright transition-colors"
+            >
+              Upgrade to Pro
+            </Link>
+          )}
+        </CardContent>
+      </Card>
+
+      {errorMessage && (
+        <Card className="border border-red-500/30 bg-red-500/5">
+          <CardContent className="py-4">
+            <p className="text-sm text-red-300">{errorMessage}</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Video URL Form */}
       {showVideoForm && (
@@ -292,7 +405,11 @@ export default function MediaPage() {
                 variant="primary"
                 onClick={handleAddVideo}
                 loading={addingVideo}
-                disabled={!videoUrl.trim() || !parseVideoUrl(videoUrl.trim())}
+                disabled={
+                  !videoUrl.trim() ||
+                  !parseVideoUrl(videoUrl.trim()) ||
+                  videoLimitReached
+                }
               >
                 Add Video
               </Button>
@@ -335,12 +452,20 @@ export default function MediaPage() {
       {/* Empty State */}
       {!loading && media.length === 0 && (
         <div className="grid grid-cols-2 gap-4 animate-in-delay-2">
-          <label className="cursor-pointer block">
+          <label
+            className={cn(
+              "block",
+              photoLimitReached
+                ? "cursor-not-allowed opacity-60"
+                : "cursor-pointer",
+            )}
+          >
             <input
               type="file"
               accept="image/*"
               multiple
               onChange={handleUpload}
+              disabled={photoLimitReached}
               className="hidden"
             />
             <Card className="border-2 border-dashed border-[var(--border-primary)] hover:border-gold/40 transition-all duration-300">
@@ -370,8 +495,17 @@ export default function MediaPage() {
             </Card>
           </label>
           <Card
-            className="border-2 border-dashed border-[var(--border-primary)] hover:border-gold/40 transition-all duration-300 cursor-pointer"
-            onClick={() => setShowVideoForm(true)}
+            className={cn(
+              "border-2 border-dashed border-[var(--border-primary)] transition-all duration-300",
+              videoLimitReached
+                ? "opacity-60 cursor-not-allowed"
+                : "hover:border-gold/40 cursor-pointer",
+            )}
+            onClick={() => {
+              if (videoLimitReached) return;
+              setErrorMessage(null);
+              setShowVideoForm(true);
+            }}
           >
             <div className="flex flex-col items-center justify-center py-14">
               <div className="w-14 h-14 rounded-2xl bg-maroon/10 border border-maroon/20 flex items-center justify-center mb-4">

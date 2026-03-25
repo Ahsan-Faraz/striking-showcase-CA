@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { verifySessionFromRequest } from "@/lib/dal";
+import { hasProAccess } from "@/lib/subscription";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,13 @@ export async function GET(request: NextRequest) {
     const user = await verifySessionFromRequest(request);
     if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    if (!hasProAccess(user.subscription)) {
+      return NextResponse.json(
+        { error: "Profile analytics is available on the Pro plan only" },
+        { status: 403 },
+      );
+    }
 
     const profile = await prisma.athleteProfile.findUnique({
       where: { userId: user.id },

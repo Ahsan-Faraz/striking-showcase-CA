@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import prisma from '@/lib/prisma';
-import { registerSchema } from '@/lib/validations/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+import prisma from "@/lib/prisma";
+import { registerSchema } from "@/lib/validations/auth";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 /**
  * POST /api/auth/register
@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'An account with this email already exists' },
-        { status: 409 }
+        { error: "An account with this email already exists" },
+        { status: 409 },
       );
     }
 
@@ -32,34 +32,35 @@ export async function POST(request: NextRequest) {
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
+      { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: validated.email,
-      password: validated.password,
-      email_confirm: true, // Auto-confirm — no email verification
-      user_metadata: {
-        role: validated.role,
-        first_name: validated.firstName,
-        last_name: validated.lastName,
-        class_year: validated.classYear,
-        school: validated.school,
-      },
-    });
+    const { data: authData, error: authError } =
+      await supabaseAdmin.auth.admin.createUser({
+        email: validated.email,
+        password: validated.password,
+        email_confirm: true, // Auto-confirm — no email verification
+        user_metadata: {
+          role: validated.role,
+          first_name: validated.firstName,
+          last_name: validated.lastName,
+          class_year: validated.classYear,
+          school: validated.school,
+        },
+      });
 
     if (authError) {
       // Handle duplicate email in Supabase
-      if (authError.message?.includes('already been registered')) {
+      if (authError.message?.includes("already been registered")) {
         return NextResponse.json(
-          { error: 'An account with this email already exists' },
-          { status: 409 }
+          { error: "An account with this email already exists" },
+          { status: 409 },
         );
       }
-      console.error('Supabase auth error:', authError);
+      console.error("Supabase auth error:", authError);
       return NextResponse.json(
-        { error: 'Failed to create account. Please try again.' },
-        { status: 500 }
+        { error: "Failed to create account. Please try again." },
+        { status: 500 },
       );
     }
 
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      if (validated.role === 'ATHLETE') {
+      if (validated.role === "ATHLETE") {
         await tx.athleteProfile.create({
           data: {
             userId: newUser.id,
@@ -85,21 +86,18 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Create trial subscription
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 30);
         await tx.subscription.create({
           data: {
             userId: newUser.id,
-            status: 'TRIALING',
-            trialEndsAt: trialEnd,
+            plan: "FREE",
+            status: "ACTIVE",
           },
         });
-      } else if (validated.role === 'COACH') {
+      } else if (validated.role === "COACH") {
         await tx.coachProfile.create({
           data: {
             userId: newUser.id,
-            school: validated.school || '',
+            school: validated.school || "",
           },
         });
       }
@@ -107,7 +105,7 @@ export async function POST(request: NextRequest) {
       return newUser;
     });
 
-    const needsOnboarding = validated.role === 'ATHLETE';
+    const needsOnboarding = validated.role === "ATHLETE";
 
     return NextResponse.json(
       {
@@ -118,20 +116,20 @@ export async function POST(request: NextRequest) {
           needsOnboarding,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
-    if (error instanceof Error && error.name === 'ZodError') {
-      const zodError = error as import('zod').ZodError;
+    if (error instanceof Error && error.name === "ZodError") {
+      const zodError = error as import("zod").ZodError;
       return NextResponse.json(
         { error: zodError.errors[0].message },
-        { status: 400 }
+        { status: 400 },
       );
     }
-    console.error('Registration error:', error);
+    console.error("Registration error:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
 }

@@ -11,6 +11,7 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  proOnly?: boolean;
 }
 
 const coachNavItems: NavItem[] = [
@@ -252,6 +253,7 @@ const athleteNavItems: NavItem[] = [
   {
     label: "Analytics",
     href: "/analytics",
+    proOnly: true,
     icon: (
       <svg
         className="w-5 h-5"
@@ -271,6 +273,7 @@ const athleteNavItems: NavItem[] = [
   {
     label: "Theme Studio",
     href: "/theme",
+    proOnly: true,
     icon: (
       <svg
         className="w-5 h-5"
@@ -354,6 +357,7 @@ interface SidebarProps {
   athleteName?: string;
   classYear?: number;
   completionPercentage?: number;
+  hasProAccess?: boolean;
   slug?: string | null;
   coachName?: string;
   coachSchool?: string;
@@ -364,6 +368,7 @@ export function Sidebar({
   athleteName,
   classYear,
   completionPercentage = 0,
+  hasProAccess = false,
   slug,
   coachName,
   coachSchool,
@@ -376,7 +381,9 @@ export function Sidebar({
 
   // Role is passed from the server-side layout — never derived from URL
   const isCoach = role === "COACH";
-  const navItems = isCoach ? coachNavItems : athleteNavItems;
+  const navItems = isCoach
+    ? coachNavItems
+    : athleteNavItems.filter((item) => !item.proOnly || hasProAccess);
 
   const toggleTheme = () => {
     const next = !isDark;

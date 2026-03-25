@@ -1,27 +1,45 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { stripe, PLANS } from '@/lib/stripe';
-import prisma from '@/lib/prisma';
-import { getCurrentUser } from '@/lib/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { stripe, PLANS } from "@/lib/stripe";
+import prisma from "@/lib/prisma";
+import { verifySessionFromRequest } from "@/lib/dal";
+import { hasProAccess } from "@/lib/subscription";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
-    let user = null;
-    try {
-      user = await getCurrentUser(request);
-    } catch {}
-
+    const user = await verifySessionFromRequest(request);
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    if (user.role !== "ATHLETE") {
+      return NextResponse.json(
+        { error: "Only athletes can manage subscriptions" },
+        { status: 403 },
+      );
+    }
+
+    if (!PLANS.PRO.priceId) {
+      return NextResponse.json(
+        { error: "STRIPE_PRO_PRICE_ID is not configured" },
+        { status: 503 },
+      );
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     // Get or create Stripe customer
     let subscription = await prisma.subscription.findUnique({
       where: { userId: user.id },
     });
+
+    if (hasProAccess(subscription)) {
+      return NextResponse.json(
+        { error: "Already subscribed to Pro" },
+        { status: 409 },
+      );
+    }
 
     let customerId = subscription?.stripeCustomerId;
 
@@ -42,7 +60,8 @@ export async function POST(request: NextRequest) {
           data: {
             userId: user.id,
             stripeCustomerId: customerId,
-            status: 'TRIALING',
+            status: "ACTIVE",
+            plan: "FREE",
           },
         });
       }
@@ -51,36 +70,29 @@ export async function POST(request: NextRequest) {
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      mode: 'subscription',
-      payment_method_types: ['card'],
+      mode: "subscription",
+      payment_method_types: ["card"],
       line_items: [
         {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: PLANS.MONTHLY.name,
-              description: 'Full access to Striking Showcase platform',
-            },
-            unit_amount: PLANS.MONTHLY.price,
-            recurring: {
-              interval: PLANS.MONTHLY.interval,
-            },
-          },
+          price: PLANS.PRO.priceId,
           quantity: 1,
         },
       ],
+      allow_promotion_codes: true,
       subscription_data: {
-        trial_period_days: PLANS.MONTHLY.trialDays,
-        metadata: { userId: user.id },
+        metadata: { userId: user.id, plan: "PRO" },
       },
-      success_url: `${appUrl}/dashboard?checkout=success`,
-      cancel_url: `${appUrl}/settings?checkout=canceled`,
-      metadata: { userId: user.id },
+      success_url: `${appUrl}/settings?billing=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/settings?billing=canceled`,
+      metadata: { userId: user.id, plan: "PRO" },
     });
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error('Checkout error:', error);
-    return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 });
+    console.error("Checkout error:", error);
+    return NextResponse.json(
+      { error: "Failed to create checkout session" },
+      { status: 500 },
+    );
   }
 }

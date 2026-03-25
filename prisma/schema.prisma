@@ -277,7 +277,7 @@ model Subscription {
   stripeCustomerId     String?            @unique
   stripeSubscriptionId String?            @unique
   plan                 Plan               @default(FREE)
-  status               SubscriptionStatus @default(TRIALING)
+  status               SubscriptionStatus @default(ACTIVE)
   currentPeriodEnd     DateTime?
   trialEndsAt          DateTime?
   createdAt            DateTime           @default(now())
@@ -342,7 +342,6 @@ enum BowlingStyle {
 enum Plan {
   FREE
   PRO
-  FAMILY
 }
 
 enum WatchlistStatus {
