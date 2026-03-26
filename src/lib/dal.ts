@@ -738,3 +738,256 @@ export async function getSavedSearches(coachProfileId: string) {
     },
   });
 }
+
+// ─── RECRUITING BOARD (Coach Kanban) ───────────────────────
+
+export type BoardEntry = {
+  id: string;
+  status: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  athlete: {
+    id: string;
+    slug: string | null;
+    firstName: string;
+    lastName: string;
+    classYear: number;
+    school: string | null;
+    state: string | null;
+    profilePhotoUrl: string | null;
+    seasonAverage: number | null;
+    highGame: number | null;
+    highSeries: number | null;
+    revRate: number | null;
+    ballSpeed: number | null;
+    dominantHand: string | null;
+    style: string | null;
+    gpa: number | null;
+    divisionInterest: string | null;
+    preferredDivisions: string[];
+  };
+  lastMessage: {
+    content: string;
+    createdAt: Date;
+  } | null;
+  daysInactive: number;
+  activities: {
+    id: string;
+    action: string;
+    fromStatus: string | null;
+    toStatus: string | null;
+    details: string | null;
+    createdAt: Date;
+  }[];
+};
+
+export type BoardColumns = {
+  TRACKING: BoardEntry[];
+  CONTACTED: BoardEntry[];
+  VISITED: BoardEntry[];
+  OFFERED: BoardEntry[];
+  COMMITTED: BoardEntry[];
+  PASSED: BoardEntry[];
+};
+
+/** Fetch the full recruiting board for a coach, grouped by status columns. */
+export async function getRecruitingBoard(coachProfileId: string): Promise<BoardColumns> {
+  const entries = await prisma.watchlist.findMany({
+    where: { coachId: coachProfileId },
+    include: {
+      athlete: {
+        select: {
+          id: true,
+          slug: true,
+          firstName: true,
+          lastName: true,
+          classYear: true,
+          school: true,
+          state: true,
+          profilePhotoUrl: true,
+          seasonAverage: true,
+          highGame: true,
+          highSeries: true,
+          revRate: true,
+          ballSpeed: true,
+          dominantHand: true,
+          style: true,
+          gpa: true,
+          divisionInterest: true,
+          preferredDivisions: true,
+          threads: {
+            where: { coachId: coachProfileId },
+            take: 1,
+            orderBy: { lastMessageAt: "desc" },
+            select: {
+              messages: {
+                orderBy: { createdAt: "desc" },
+                take: 1,
+                select: { content: true, createdAt: true },
+              },
+            },
+          },
+        },
+      },
+      activities: {
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        select: {
+          id: true,
+          action: true,
+          fromStatus: true,
+          toStatus: true,
+          details: true,
+          createdAt: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  const columns: BoardColumns = {
+    TRACKING: [],
+    CONTACTED: [],
+    VISITED: [],
+    OFFERED: [],
+    COMMITTED: [],
+    PASSED: [],
+  };
+
+  for (const entry of entries) {
+    const thread = entry.athlete.threads[0];
+    const lastMsg = thread?.messages[0] ?? null;
+    const lastActivityDate = entry.updatedAt;
+    const daysInactive = Math.floor(
+      (Date.now() - new Date(lastActivityDate).getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    const boardEntry: BoardEntry = {
+      id: entry.id,
+      status: entry.status,
+      notes: entry.notes,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
+      athlete: {
+        id: entry.athlete.id,
+        slug: entry.athlete.slug,
+        firstName: entry.athlete.firstName,
+        lastName: entry.athlete.lastName,
+        classYear: entry.athlete.classYear,
+        school: entry.athlete.school,
+        state: entry.athlete.state,
+        profilePhotoUrl: entry.athlete.profilePhotoUrl,
+        seasonAverage: entry.athlete.seasonAverage,
+        highGame: entry.athlete.highGame,
+        highSeries: entry.athlete.highSeries,
+        revRate: entry.athlete.revRate,
+        ballSpeed: entry.athlete.ballSpeed,
+        dominantHand: entry.athlete.dominantHand,
+        style: entry.athlete.style,
+        gpa: entry.athlete.gpa,
+        divisionInterest: entry.athlete.divisionInterest,
+        preferredDivisions: entry.athlete.preferredDivisions,
+      },
+      lastMessage: lastMsg ? { content: lastMsg.content, createdAt: lastMsg.createdAt } : null,
+      daysInactive,
+      activities: entry.activities,
+    };
+
+    const status = entry.status as keyof BoardColumns;
+    if (columns[status]) {
+      columns[status].push(boardEntry);
+    }
+  }
+
+  return columns;
+}
+
+/** Get a single board entry with full details for the detail panel. */
+export async function getBoardEntryDetail(entryId: string, coachProfileId: string) {
+  const entry = await prisma.watchlist.findFirst({
+    where: { id: entryId, coachId: coachProfileId },
+    include: {
+      athlete: {
+        select: {
+          id: true,
+          slug: true,
+          firstName: true,
+          lastName: true,
+          classYear: true,
+          school: true,
+          state: true,
+          profilePhotoUrl: true,
+          seasonAverage: true,
+          highGame: true,
+          highSeries: true,
+          revRate: true,
+          ballSpeed: true,
+          dominantHand: true,
+          style: true,
+          gpa: true,
+          divisionInterest: true,
+          preferredDivisions: true,
+        },
+      },
+      activities: {
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      },
+      noteVersions: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      },
+    },
+  });
+
+  if (!entry) return null;
+
+  // Get last 3 messages in the thread between this coach and athlete
+  const thread = await prisma.messageThread.findFirst({
+    where: { coachId: coachProfileId, athleteId: entry.athleteId },
+    select: {
+      id: true,
+      messages: {
+        orderBy: { createdAt: "desc" },
+        take: 3,
+        select: {
+          id: true,
+          content: true,
+          senderId: true,
+          senderRole: true,
+          createdAt: true,
+          readAt: true,
+        },
+      },
+    },
+  });
+
+  return {
+    ...entry,
+    thread: thread
+      ? { id: thread.id, messages: thread.messages.reverse() }
+      : null,
+  };
+}
+
+/** Log a board activity. */
+export async function logBoardActivity(
+  watchlistId: string,
+  coachId: string,
+  action: string,
+  fromStatus?: string,
+  toStatus?: string,
+  details?: string,
+) {
+  return prisma.boardActivity.create({
+    data: {
+      watchlistId,
+      coachId,
+      action,
+      fromStatus: fromStatus ?? null,
+      toStatus: toStatus ?? null,
+      details: details ?? null,
+    },
+  });
+}

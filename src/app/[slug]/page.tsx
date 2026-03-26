@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPublicProfile } from "@/lib/dal";
+import { getPublicProfile, verifySession } from "@/lib/dal";
 import { ShowcasePortfolio } from "@/app/athlete/preview/ShowcasePortfolio";
 
 export const dynamic = "force-dynamic";
@@ -75,11 +75,26 @@ export default async function PublicProfilePage({ params }: Props) {
   if (!profile) notFound();
 
   const prisma = (await import("@/lib/prisma")).default;
+
+  // Determine viewer context for CTA — non-blocking, public profiles still render if no session
+  let viewerType: "verified-coach" | "unverified-coach" | "public" = "public";
+  let hideMessagingCta = true;
+
+  const session = await verifySession().catch(() => null);
+  if (session?.role === "COACH") {
+    const coachProfile = await prisma.coachProfile.findUnique({
+      where: { userId: session.id },
+      select: { isVerified: true },
+    });
+    viewerType = coachProfile?.isVerified ? "verified-coach" : "unverified-coach";
+    hideMessagingCta = false;
+  }
+
   prisma.profileView
     .create({
       data: {
         athleteId: profile.id,
-        viewerType: "public",
+        viewerType: session?.role === "COACH" ? "coach" : "public",
         source: "slug-profile",
       },
     })
@@ -113,9 +128,11 @@ export default async function PublicProfilePage({ params }: Props) {
       <ShowcasePortfolio
         sourceMode="provided"
         initialAthleteRaw={profile as unknown as Record<string, any>}
-        hideMessagingCta
+        hideMessagingCta={hideMessagingCta}
         showControls={false}
         trackScrollSticky={false}
+        athleteProfileId={profile.id}
+        viewerType={viewerType}
       />
     </>
   );

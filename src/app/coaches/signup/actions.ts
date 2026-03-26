@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import prisma from "@/lib/prisma";
 import { coachSignupSchema } from "@/lib/validations/coach";
+import { sendCoachVerificationPendingEmail } from "@/lib/email";
 
 type ActionResult = { error?: string; data?: { success: boolean } };
 
@@ -87,14 +88,14 @@ export async function signupCoach(formData: unknown): Promise<ActionResult> {
     });
   });
 
-  // 6. Send verification pending email via Resend (best-effort)
-  try {
-    if (process.env.RESEND_API_KEY) {
-    }
-  } catch (emailErr) {
+  // 6. Send verification pending email via GoHighLevel (best-effort)
+  sendCoachVerificationPendingEmail({
+    to: d.email,
+    firstName: d.firstName,
+  }).catch((emailErr) => {
     console.error("Failed to send verification pending email:", emailErr);
     // Non-blocking — account is created; email failure is not fatal.
-  }
+  });
 
   return { data: { success: true } };
 }

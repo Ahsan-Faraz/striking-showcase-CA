@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import prisma from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations/auth";
+import { sendAthleteWelcomeEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,16 @@ export async function POST(request: NextRequest) {
     });
 
     const needsOnboarding = validated.role === "ATHLETE";
+
+    // Send welcome email to athletes (fire-and-forget — don't block registration)
+    if (validated.role === "ATHLETE") {
+      sendAthleteWelcomeEmail({
+        to: validated.email,
+        firstName: validated.firstName,
+      }).catch((err) => {
+        console.error("Failed to send athlete welcome email:", err);
+      });
+    }
 
     return NextResponse.json(
       {

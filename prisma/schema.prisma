@@ -181,6 +181,7 @@ model MessageThread {
   coachId       String
   coach         CoachProfile   @relation("coachThread", fields: [coachId], references: [id])
   messages      Message[]
+  inquiry       CoachInquiry?
   lastMessageAt DateTime       @default(now())
   createdAt     DateTime       @default(now())
 
@@ -199,6 +200,20 @@ model Message {
   createdAt  DateTime      @default(now())
 }
 
+model CoachInquiry {
+  id        String         @id @default(cuid())
+  athleteId String
+  coachId   String
+  threadId  String         @unique
+  thread    MessageThread  @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  status    InquiryStatus  @default(OPEN)
+  createdAt DateTime       @default(now())
+
+  @@unique([athleteId, coachId])
+  @@index([athleteId])
+  @@index([coachId])
+}
+
 model Watchlist {
   id        String         @id @default(cuid())
   coachId   String
@@ -208,6 +223,8 @@ model Watchlist {
   status    WatchlistStatus @default(TRACKING)
   notes     String?        @db.Text
   contacted Boolean        @default(false)
+  activities BoardActivity[]
+  noteVersions NoteVersion[]
   createdAt DateTime       @default(now())
   updatedAt DateTime       @default(now()) @updatedAt
 
@@ -322,6 +339,31 @@ model SavedSearch {
   @@index([coachId])
 }
 
+model BoardActivity {
+  id          String   @id @default(cuid())
+  watchlistId String
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  coachId     String
+  action      String   // "added_to_tracking", "moved_to_contacted", "message_sent", "note_updated", "removed"
+  fromStatus  String?
+  toStatus    String?
+  details     String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([watchlistId, createdAt])
+  @@index([coachId])
+}
+
+model NoteVersion {
+  id          String   @id @default(cuid())
+  watchlistId String
+  watchlist   Watchlist @relation(fields: [watchlistId], references: [id], onDelete: Cascade)
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([watchlistId, createdAt])
+}
+
 enum Role {
   ATHLETE
   PARENT
@@ -410,4 +452,10 @@ enum NotificationType {
   VIDEO_UPLOAD
   TOURNAMENT_REMINDER
   SYSTEM
+}
+
+enum InquiryStatus {
+  OPEN
+  REPLIED
+  CLOSED
 }

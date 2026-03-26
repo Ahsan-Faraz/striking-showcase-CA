@@ -32,7 +32,7 @@ evaluated against the bowling recruiting use case specifically.
 | ORM      | Prisma (existing codebase uses this)              |
 | Media    | Cloudinary — photos/videos, transformations, CDN  |
 | Payments | Stripe — Free / Pro / Family subscription plans   |
-| Email    | GoHighLevel webhook — transactional + broadcast   |
+| Email    | GoHighLevel webhook — ALL emails (signup + notifications) |
 | Hosting  | Vercel (frontend) + Supabase (backend)            |
 
 ---
@@ -209,7 +209,8 @@ recruiting_board
 ```
 User, AthleteProfile, CoachProfile, MessageThread, Message,
 Watchlist, Tournament, BallArsenal, Media, Subscription,
-Notification, Report, AuditLog, CollegeTarget
+Notification, Report, AuditLog, CollegeTarget,
+CoachInquiry (NEW — Sprint 6), BoardActivity, NoteVersion
 ```
 
 ### AthleteProfile Fields (Prisma)
@@ -404,7 +405,7 @@ USBC ID linked:                    10%
 /dashboard/media       → Lists/uploads via /api/media/upload. Functional when Supabase env configured.
 /dashboard/tournaments → CRUD via /api/tournaments. Largely functional.
 /dashboard/arsenal     → CRUD via /api/arsenal. Largely functional.
-/dashboard/messages    → Lists threads, sends replies. ⚠️ Uses PLACEHOLDER currentUserId — must fix.
+/dashboard/messages    → ✅ Athlete inbox: real threads, polling, sends replies. Uses /api/messages.
 /dashboard/settings    → Color/layout persists via /api/athletes/me.
                          Notification toggles → UI-ONLY (not persisted).
                          Family access section → UI-ONLY (no backend).
@@ -489,14 +490,14 @@ Invite other family members:                          ❌ NO — athlete only
 2. Clicks "Contact Athlete" (verified Pro coaches only)
 3. System creates message_thread (coach_id + athlete_id)
 4. Coach sends first message
-5. Athlete gets email via GoHighLevel webhook: "Coach [Name] from [School] sent you a message"
+5. Athlete gets email via GoHighLevel: "Coach [Name] from [School] sent you a message"
 6. Athlete (+ family with access) reads/replies in /dashboard/inquiries
 7. All subsequent messages in same thread — no new threads for same pair
 8. Daily email digest for athletes who haven't logged in
 ```
 
-**Current status:** Backend functional. Messages UI uses placeholder `currentUserId`.
-File to fix: `src/app/(dashboard)/messages/page.tsx`
+**Current status:** ✅ IMPLEMENTED — Full messaging system with GoHighLevel email notifications.
+File to fix: ~~`src/app/(dashboard)/messages/page.tsx`~~ — FIXED (uses real `currentUserId`).
 
 ---
 
@@ -525,22 +526,24 @@ Last Active:         Updated in last 30/60/90 days
 
 ---
 
-## 📋 RECRUITING BOARD (KANBAN)
+## 📋 RECRUITING BOARD (KANBAN) — ✅ IMPLEMENTED
 
 ### Columns
 
 `Tracking → Contacted → Visited → Offered → Committed → Passed`
 
-### Features
+### Features — All Implemented
 
-- Drag-and-drop, Supabase Realtime syncs to all team members instantly
-- Athlete card: photo, name, avg, grad year, last message date, days since last activity
-- Click card → detail panel: full stats, notes, message thread, activity log
-- Notes: team-only, rich text, versioned
-- Activity log: auto-logged, shows which team member acted
-- Filters: by column, staff member, grad year
-- **CSV export** of all board athletes with status
-- Staff CANNOT delete athletes or change program settings — head coach only
+- Drag-and-drop via @dnd-kit (MouseSensor + TouchSensor)
+- Cannot drag to PASSED column (must use status dropdown — intentional safeguard)
+- Athlete card: photo, name, avg, rev rate, grad year, last message date, days inactive
+- Click card → slide-out detail panel: full stats, rich-text notes, activity log, messages
+- Notes: coach-only, rich text via Tiptap, versioned (NoteVersion model, keeps last 10)
+- Activity log: auto-logged on every status change, note edit, message sent
+- Filters: by column, grad year, name search (all client-side)
+- **CSV export** of all board athletes with status + stats
+- Optimistic UI with revert on API failure
+- coach_team REMOVED — single coach only, no Realtime sync needed
 
 ---
 
@@ -672,6 +675,7 @@ src/
 │   ├── portal/profile/page.tsx               → ✅ Coach profile editor (Server Action + Zod)
 │   ├── portal/profile/CoachProfileEditor.tsx → ✅ Client form component
 │   ├── portal/profile/actions.ts             → ✅ saveCoachProfile Server Action
+│   ├── portal/messages/page.tsx               → ✅ Coach messaging inbox (real threads + polling)
 │   ├── portal/settings/page.tsx              → ✅ Notification prefs + account
 │   ├── portal/settings/CoachSettingsForm.tsx  → ✅ Client toggle form
 │   ├── portal/settings/actions.ts            → ✅ saveCoachSettings Server Action
@@ -679,9 +683,20 @@ src/
 │   ├── portal/search/SearchFilters.tsx       → ✅ 11-filter client component (URL-driven)
 │   ├── portal/search/SearchResults.tsx       → ✅ Card + List view components
 │   ├── portal/search/SearchResultsClient.tsx → ✅ Client orchestrator (board actions, pagination, saved)
+│   ├── portal/board/page.tsx             → ✅ Server Component (session → DAL → KanbanBoard)
+│   ├── portal/board/types.ts             → ✅ Shared types + column constants
+│   ├── portal/board/actions.ts           → ✅ Server Actions (status, notes, remove, reply, CSV)
+│   ├── portal/board/KanbanBoard.tsx      → ✅ Main client component (DndContext, filters, CSV export)
+│   ├── portal/board/KanbanColumn.tsx     → ✅ Droppable column (SortableContext)
+│   ├── portal/board/AthleteCard.tsx      → ✅ Sortable draggable card
+│   ├── portal/board/DetailPanel.tsx      → ✅ Slide-out detail (Stats/Notes/Activity/Messages tabs)
+│   ├── portal/board/RichTextEditor.tsx   → ✅ Tiptap rich text editor
 │   ├── api/
 │   │   ├── auth/sync/route.ts                → ✅ Prisma record sync for Supabase users
 │   │   ├── portal/saved-searches/route.ts    → ✅ CRUD for saved searches (GET/POST/DELETE)
+│   │   ├── portal/board/route.ts             → ✅ Board API (GET all columns + POST add athlete)
+│   │   ├── portal/board/[id]/route.ts        → ✅ Board entry API (GET detail + PUT update + DELETE)
+│   │   ├── portal/messages/route.ts           → ✅ Coach threads API (POST create + GET list)
 │   │   ├── admin/verify-coach/route.ts       → ✅ Temp admin verification (ADMIN_SECRET)
 │   │   └── ...                               → All other API routes
 │   └── api/og/image/route.tsx                → ✅ Dynamic OG image
@@ -690,6 +705,7 @@ src/
 │   ├── auth.ts                               → JWT resolver (migration fallback)
 │   ├── dal.ts                                → ✅ Supabase-first + JWT fallback + lazy sync
 │   ├── prisma.ts                             → Prisma client
+│   ├── email.ts                              → ✅ GoHighLevel (all emails: signup + notifications)
 │   ├── supabase/client.ts                    → ✅ Browser Supabase client
 │   ├── supabase/server.ts                    → ✅ Server Supabase client
 │   ├── validations/auth.ts                   → ✅ Zod schemas for login/register
@@ -729,6 +745,9 @@ src/
 7. ✅ FIXED — Messages currentUserId now from authenticated session
    Fetches real user ID from /api/athletes/me on mount.
    File: src/app/(dashboard)/messages/page.tsx
+8. ✅ FIXED — Messaging system fully wired (Sprint 6)
+   Coach CTA on /[slug], coach inbox at /portal/messages, email notifications via Resend.
+   Family member thread access. Unverified coach guard on all send operations.
 ```
 
 ### MEDIUM
@@ -766,8 +785,8 @@ src/
 | 1      | 1–2   | Codebase review, Supabase schema + RLS, auth, role-based routing, landing, onboarding     |
 | 2      | 3–4   | Public profile (SSR + SEO), profile editor, Cloudinary media, bowling stats, ball arsenal |
 | 3      | 5–6   | Tournament results, college targets, theme studio (CSS vars), profile completion system   |
-| 4      | 7–8   | Coach portal: signup, verification, athlete search with all filters                       |
-| 5      | 9–10  | Recruiting board (Kanban + Supabase Realtime), team collaboration                         |
+| 4      | 7–8   | ✅ Coach portal: signup, verification, athlete search with all filters                  |
+| 5      | 9–10  | ✅ Recruiting board (Kanban + drag-drop + detail panel + CSV export) — single coach only  |
 | 6      | 11–12 | Messaging system, family access portal, family invite flow                                |
 | 7      | 13–14 | Stripe (plans + webhooks), feature gating, analytics, admin portal (all 9 screens)        |
 | 8      | 15–16 | QA, performance, SEO audit, security hardening, production deploy                         |
@@ -804,7 +823,7 @@ STRIPE_SECRET_KEY=                   # Server-side only
 STRIPE_WEBHOOK_SECRET=               # Server-side only
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=  # Safe to expose
 
-# GoHighLevel
+# GoHighLevel (ALL emails)
 GHL_WEBHOOK_URL=                     # Server-side only, optional override
 GHL_FROM_EMAIL=                      # Server-side only, optional sender address
 
@@ -824,87 +843,52 @@ ADMIN_SUBDOMAIN=admin.strikingshowcase.com
 _(Update this section at the end of every session)_
 
 ```
-Current Sprint:  Sprint 4 — Week 7–8
-Last worked on:  Sprint 4 Prompt 2 — Athlete Search Engine + Board Integration
-                 PART 1: Prisma Schema — SavedSearch model:
-                   - New model: SavedSearch { id, coachId, name, filtersJson (Json),
-                     emailAlerts (Boolean), createdAt, updatedAt }
-                   - CoachProfile gets savedSearches SavedSearch[] relation
-                   - @@index on coachId
-                   File: prisma/schema.prisma
-                 PART 2: DAL — searchAthletes + getSavedSearches:
-                   - searchAthletes(filters, coachProfileId): full 11-filter search
-                     Filters: classYear (multi), state, division (multi/hasSome),
-                     avgMin/avgMax, revRate (categorical: low/medium/high/elite),
-                     handed, gender, gpaMin/gpaMax, hasVideo (media relation),
-                     hasUsbc, lastActive (updatedAt days)
-                   - Sorting: average, revRate, gradYear, lastActive, gpa + asc/desc
-                   - Pagination: page + limit (capped at 50)
-                   - Board status map: fetches Watchlist statuses for returned athletes
-                   - getSavedSearches(coachProfileId): returns coach saved searches
-                   File: src/lib/dal.ts
-                 PART 3: SearchFilters.tsx — Client component:
-                   - 11 filters: classYear (chips), state (dropdown), division (chips),
-                     avgMin/avgMax (number), revRate (dropdown), handed (dropdown),
-                     gender (dropdown), gpaMin/gpaMax (number), lastActive (dropdown),
-                     hasVideo (checkbox), hasUsbc (checkbox)
-                   - URL-driven: reads/writes searchParams via router.push
-                   - Active filter count badge on toggle button
-                   - SearchControls: sort + order + card/list view toggle
-                   File: src/app/portal/search/SearchFilters.tsx
-                 PART 4: SearchResults.tsx — Card + List view:
-                   - SearchAthleteCard: enhanced card with board status badge,
-                     rev rate in stats strip, division badges, video badge,
-                     "Add to Board" dropdown (select), links to /[slug]
-                   - AthleteListRow: compact table row for list view
-                   - Board status change via dropdown on both views
-                   File: src/app/portal/search/SearchResults.tsx
-                 PART 5: SearchResultsClient.tsx — Client orchestrator:
-                   - Handles board actions (POST new, PATCH update)
-                   - Pagination navigation
-                   - Save search modal (name input → POST /api/portal/saved-searches)
-                   - Load saved search (applies filters to URL)
-                   - Delete saved search
-                   - Card/list view switching
-                   File: src/app/portal/search/SearchResultsClient.tsx
-                 PART 6: /portal/search page.tsx — Server Component:
-                   - verifySession → COACH role guard → coachProfile check
-                   - Reads all searchParams, builds SearchFilters object
-                   - Promise.all([searchAthletes, getSavedSearches])
-                   - Passes data to SearchResultsClient
-                   File: src/app/portal/search/page.tsx
-                 PART 7: Saved Searches API:
-                   - GET /api/portal/saved-searches → list coach's searches
-                   - POST /api/portal/saved-searches → create (max 20 limit)
-                   - DELETE /api/portal/saved-searches?id= → delete own search
-                   - All: session + COACH role + Zod validation
-                   File: src/app/api/portal/saved-searches/route.ts
-                 PART 8: Watchlist API enhancements:
-                   - POST now accepts optional `status` field (defaults to TRACKING)
-                   - New PATCH handler: update board status for existing entry
-                   - Zod schemas: addSchema + updateSchema
-                   File: src/app/api/watchlist/route.ts
-                 PART 9: Admin Verification Workaround:
-                   - POST /api/admin/verify-coach: verify coach by email
-                   - GET /api/admin/verify-coach: list all unverified coaches
-                   - Protected by x-admin-secret header (ADMIN_SECRET env var)
-                   - Temporary until admin panel is built
-                   File: src/app/api/admin/verify-coach/route.ts
-                 PART 10: Register redirect:
-                   - Coach role selection on /register now redirects to /coaches/signup
-                   File: src/app/(auth)/register/page.tsx
-                 tsc --noEmit: ✅ ZERO errors
-                 prisma generate: ✅ Success
-                 prisma db push: ⚠️ Requires DIRECT_URL env var (Supabase connection)
-Next task:       Sprint 5 — Recruiting Board (Kanban) or Messaging System
-Blockers:        prisma db push needs DIRECT_URL + DATABASE_URL configured
-Decisions made:  Search is URL-driven (searchParams) not client-state — enables deep linking + saved searches.
-                 Rev rate uses categorical buckets (low/medium/high/elite) not raw number ranges.
-                 Board actions from search results use existing watchlist API (POST + new PATCH).
-                 Admin verification workaround uses ADMIN_SECRET header (not session) — temporary.
-                 SavedSearch limited to 20 per coach.
-                 Existing AthleteCard.tsx left intact — new SearchAthleteCard used in portal/search.
-New env var:     ADMIN_SECRET — required for temp admin verification route
+Current Sprint:  Sprint 6 — Week 11–12
+Last worked on:  Sprint 6 — Email System Consolidation
+
+=== SPRINT 6: MESSAGING SYSTEM + EMAIL CONSOLIDATION ===
+
+  DB CHANGES (prisma db push applied):
+    - New enum: InquiryStatus (OPEN, REPLIED, CLOSED)
+    - New model: CoachInquiry { id, athleteId, coachId, threadId (unique FK→MessageThread),
+      status (InquiryStatus, default OPEN), createdAt }
+      @@unique([athleteId, coachId]), @@index([athleteId]), @@index([coachId])
+    - MessageThread model gained: inquiry CoachInquiry? (1:1 relation)
+
+  EMAIL ARCHITECTURE (single system — GoHighLevel for EVERYTHING):
+    All emails sent via sendEmailViaGoHighLevel() webhook.
+    Functions (all in src/lib/email.ts):
+      - sendAthleteWelcomeEmail (on /api/auth/register)
+      - sendCoachVerificationPendingEmail (on /coaches/signup)
+      - sendNewMessageToAthleteEmail
+      - sendReplyToCoachEmail
+      - sendFamilyMessageNotificationEmail
+      - sendFamilyInviteEmail
+      - sendDailyDigestEmail
+    Resend REMOVED. Nodemailer REMOVED. Zero external email deps.
+    /api/send-email/route.ts = REST wrapper around sendEmailViaGoHighLevel().
+
+  DEPENDENCY CHANGES:
+    - REMOVED: resend, nodemailer, @types/nodemailer
+    - DELETED: src/lib/resend.ts
+
+  ENV VARS CHANGED:
+    - REMOVED: RESEND_API_KEY, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
+
+  FIXES THIS SESSION:
+    - Coach signup now sends verification pending email via GHL (was stubbed/empty)
+    - All notification imports updated from @/lib/resend → @/lib/email
+    - ALL notification functions rewritten to use sendEmailViaGoHighLevel() directly
+
+Previous Sprint 5 work preserved — Recruiting Board (Kanban) intact.
+
+Next task:       Sprint 6 continuation — Family Access Portal + family invite flow
+Blockers:        None
+Decisions made:  GoHighLevel for ALL emails (signup + notifications). Single system.
+                 CoachInquiry separate from MessageThread (1:1) for status tracking.
+                 Family access via FamilyAccess table check in getThreadAccess().
+                 All email sends are fire-and-forget.
+New dependencies: none
 ```
 
 ---

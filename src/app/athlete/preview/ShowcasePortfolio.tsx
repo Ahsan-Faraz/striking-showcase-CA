@@ -371,12 +371,18 @@ type LayoutType = 'classic' | 'modern' | 'minimal' | 'bold' | 'media-first';
 
 type SourceMode = 'me' | 'provided';
 
+type ViewerType = 'verified-coach' | 'unverified-coach' | 'public';
+
 interface ShowcasePortfolioProps {
   sourceMode?: SourceMode;
   initialAthleteRaw?: Record<string, any> | null;
   hideMessagingCta?: boolean;
   showControls?: boolean;
   trackScrollSticky?: boolean;
+  /** Required when CTA is shown — the athlete profile DB id */
+  athleteProfileId?: string;
+  /** Viewer context for the CTA button */
+  viewerType?: ViewerType;
 }
 
 function toEmbedUrl(url: string | null | undefined): string | null {
@@ -602,10 +608,14 @@ export function ShowcasePortfolio({
   hideMessagingCta = true,
   showControls = true,
   trackScrollSticky = true,
+  athleteProfileId,
+  viewerType = 'public',
 }: ShowcasePortfolioProps) {
   const [layout, setLayout] = useState<LayoutType>('classic');
   const [theme, setTheme] = useState<Theme>('dark');
   const [colorScheme, setColorScheme] = useState<ColorScheme>('MAROON');
+  const [messageSending, setMessageSending] = useState(false);
+  const [messageStatus, setMessageStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [themeSettings, setThemeSettings] = useState({
     fontFamily: 'default',
     headerStyle: 'solid',
@@ -734,6 +744,37 @@ export function ShowcasePortfolio({
     );
   }, [C.card, C.textMuted, theme, colorScheme]);
 
+  // ── Contact Athlete CTA handler ──
+  const handleMessageAthlete = async () => {
+    if (viewerType === 'unverified-coach') {
+      setMessageStatus('error');
+      return;
+    }
+    if (viewerType !== 'verified-coach' || !athleteProfileId || messageSending) return;
+    setMessageSending(true);
+    setMessageStatus('idle');
+    try {
+      const res = await fetch('/api/portal/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ athleteId: athleteProfileId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        window.location.href = `/portal/messages?thread=${data.threadId}`;
+      } else {
+        setMessageStatus('error');
+      }
+    } catch {
+      setMessageStatus('error');
+    } finally {
+      setMessageSending(false);
+    }
+  };
+
+  const ctaDisabled = viewerType === 'unverified-coach';
+  const ctaTitle = ctaDisabled ? 'Complete verification to message athletes' : undefined;
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -851,7 +892,11 @@ export function ShowcasePortfolio({
           </button>
 
           {!hideMessagingCta && (
-            <button style={{
+            <button
+              onClick={handleMessageAthlete}
+              disabled={ctaDisabled || messageSending}
+              title={ctaTitle}
+              style={{
               fontFamily: 'var(--font-exo2), sans-serif',
               fontSize: 11,
               fontWeight: 700,
@@ -860,11 +905,12 @@ export function ShowcasePortfolio({
               padding: '8px 20px',
               borderRadius: 6,
               border: 'none',
-              background: C.maroon,
+              background: ctaDisabled ? C.textDim : C.maroon,
               color: '#fff',
-              cursor: 'pointer',
+              cursor: ctaDisabled ? 'not-allowed' : 'pointer',
               whiteSpace: 'nowrap',
-            }}>Message Athlete</button>
+              opacity: messageSending ? 0.6 : 1,
+            }}>{messageSending ? 'Opening…' : 'Message Athlete'}</button>
           )}
         </div>
       </div>
@@ -1169,17 +1215,23 @@ export function ShowcasePortfolio({
                 opacity: 0, animationFillMode: 'forwards',
               }}>
                 {!hideMessagingCta && (
-                  <button style={{
+                  <button
+                    onClick={handleMessageAthlete}
+                    disabled={ctaDisabled || messageSending}
+                    title={ctaTitle}
+                    style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8, padding: '14px 32px', borderRadius: 12,
-                    border: 'none', background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
+                    border: 'none', background: ctaDisabled ? C.textDim : `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
                     color: '#000', fontFamily: 'var(--font-exo2), sans-serif', fontWeight: 700,
-                    fontSize: 14, letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
-                    boxShadow: `0 4px 24px ${goldRgba(0.35)}`,
+                    fontSize: 14, letterSpacing: '0.06em', textTransform: 'uppercase',
+                    cursor: ctaDisabled ? 'not-allowed' : 'pointer',
+                    boxShadow: ctaDisabled ? 'none' : `0 4px 24px ${goldRgba(0.35)}`,
+                    opacity: messageSending ? 0.6 : 1,
                   }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
                     </svg>
-                    Recruit {athlete.firstName}
+                    {messageSending ? 'Opening…' : `Recruit ${athlete.firstName}`}
                   </button>
                 )}
                 <button style={{
@@ -1767,17 +1819,23 @@ export function ShowcasePortfolio({
                 </div>
               </div>
               {!hideMessagingCta && (
-                <button style={{
+                <button
+                  onClick={handleMessageAthlete}
+                  disabled={ctaDisabled || messageSending}
+                  title={ctaTitle}
+                  style={{
                   display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 10,
-                  border: 'none', background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
+                  border: 'none', background: ctaDisabled ? C.textDim : `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`,
                   color: '#000', fontFamily: 'var(--font-exo2), sans-serif', fontWeight: 700, fontSize: 13,
-                  letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
-                  boxShadow: `0 4px 16px ${goldRgba(0.3)}`,
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                  cursor: ctaDisabled ? 'not-allowed' : 'pointer',
+                  boxShadow: ctaDisabled ? 'none' : `0 4px 16px ${goldRgba(0.3)}`,
+                  opacity: messageSending ? 0.6 : 1,
                 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" />
                   </svg>
-                  Message Athlete
+                  {messageSending ? 'Opening…' : 'Message Athlete'}
                 </button>
               )}
             </div>
@@ -1899,13 +1957,19 @@ export function ShowcasePortfolio({
                 </div>
               ))}
               {!hideMessagingCta && (
-                <button style={{
+                <button
+                  onClick={handleMessageAthlete}
+                  disabled={ctaDisabled || messageSending}
+                  title={ctaTitle}
+                  style={{
                   marginTop: 24, width: '100%', padding: '14px 0', borderRadius: 10, border: 'none',
-                  background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: '#000',
+                  background: ctaDisabled ? C.textDim : `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: '#000',
                   fontFamily: 'var(--font-exo2), sans-serif', fontWeight: 700, fontSize: 14,
-                  letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
-                  boxShadow: `0 4px 20px ${goldRgba(0.3)}`,
-                }}>Recruit {athlete.firstName}</button>
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  cursor: ctaDisabled ? 'not-allowed' : 'pointer',
+                  boxShadow: ctaDisabled ? 'none' : `0 4px 20px ${goldRgba(0.3)}`,
+                  opacity: messageSending ? 0.6 : 1,
+                }}>{messageSending ? 'Opening…' : `Recruit ${athlete.firstName}`}</button>
               )}
             </div>
           </div>
@@ -2121,12 +2185,18 @@ export function ShowcasePortfolio({
                 </div>
               ))}
               {!hideMessagingCta && (
-                <button style={{
+                <button
+                  onClick={handleMessageAthlete}
+                  disabled={ctaDisabled || messageSending}
+                  title={ctaTitle}
+                  style={{
                   padding: '12px 28px', borderRadius: 8, border: 'none',
-                  background: C.maroon, color: '#fff',
+                  background: ctaDisabled ? C.textDim : C.maroon, color: '#fff',
                   fontFamily: 'var(--font-exo2), sans-serif', fontWeight: 700, fontSize: 12,
-                  letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
-                }}>Message Athlete</button>
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  cursor: ctaDisabled ? 'not-allowed' : 'pointer',
+                  opacity: messageSending ? 0.6 : 1,
+                }}>{messageSending ? 'Opening…' : 'Message Athlete'}</button>
               )}
             </div>
           </Reveal>
@@ -2514,13 +2584,19 @@ export function ShowcasePortfolio({
                 ))}
               </div>
               {!hideMessagingCta && (
-                <button style={{
+                <button
+                  onClick={handleMessageAthlete}
+                  disabled={ctaDisabled || messageSending}
+                  title={ctaTitle}
+                  style={{
                   padding: '16px 48px', borderRadius: 10, border: 'none',
-                  background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: '#000',
+                  background: ctaDisabled ? C.textDim : `linear-gradient(135deg, ${C.gold}, ${C.goldLight})`, color: '#000',
                   fontFamily: 'var(--font-exo2), sans-serif', fontWeight: 700, fontSize: 15,
-                  letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
-                  boxShadow: `0 4px 24px ${goldRgba(0.35)}`,
-                }}>Recruit {athlete.firstName}</button>
+                  letterSpacing: '0.08em', textTransform: 'uppercase',
+                  cursor: ctaDisabled ? 'not-allowed' : 'pointer',
+                  boxShadow: ctaDisabled ? 'none' : `0 4px 24px ${goldRgba(0.35)}`,
+                  opacity: messageSending ? 0.6 : 1,
+                }}>{messageSending ? 'Opening…' : `Recruit ${athlete.firstName}`}</button>
               )}
             </div>
           </Reveal>
