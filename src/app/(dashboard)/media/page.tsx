@@ -88,7 +88,10 @@ export default function MediaPage() {
     const files = e.target.files;
     if (!files?.length) return;
 
-    if (!limits?.isPro && (limits.remainingPhotos ?? 0) <= 0) {
+    const isPro = limits?.isPro ?? false;
+    const remainingPhotos = limits?.remainingPhotos ?? 0;
+
+    if (!isPro && remainingPhotos <= 0) {
       setErrorMessage(
         "Free plan includes up to 3 photos. Upgrade to Pro for unlimited media.",
       );
@@ -96,13 +99,9 @@ export default function MediaPage() {
       return;
     }
 
-    if (
-      !limits?.isPro &&
-      limits.remainingPhotos !== null &&
-      files.length > limits.remainingPhotos
-    ) {
+    if (!isPro && files.length > remainingPhotos) {
       setErrorMessage(
-        `You can upload ${limits.remainingPhotos} more photo${limits.remainingPhotos === 1 ? "" : "s"} on the Free plan.`,
+        `You can upload ${remainingPhotos} more photo${remainingPhotos === 1 ? "" : "s"} on the Free plan.`,
       );
       e.target.value = "";
       return;
@@ -145,7 +144,10 @@ export default function MediaPage() {
     const parsed = parseVideoUrl(videoUrl.trim());
     if (!parsed) return;
 
-    if (!limits?.isPro && (limits.remainingVideos ?? 0) <= 0) {
+    const isPro = limits?.isPro ?? false;
+    const remainingVideos = limits?.remainingVideos ?? 0;
+
+    if (!isPro && remainingVideos <= 0) {
       setErrorMessage(
         "Free plan includes 1 video. Upgrade to Pro for unlimited media.",
       );
